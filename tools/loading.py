@@ -32,12 +32,18 @@ def load_mesh(mesh_file_loc: str):
 
 def load_harmonic_data(data_file_loc: str, u: df.Function, checkpoint: int = 0):
 
+    # Check u is a vector function, to avoid silent seg-fault. Looks horrible but might work for CG-spaces
+    assert u.function_space().num_sub_spaces() > 0, "Is u a function in a VectorFunctionSpace?"
+
     with df.XDMFFile(data_file_loc + "/input_.xdmf") as infile:
         infile.read_checkpoint(u, "input", checkpoint)
 
     return u
 
 def load_biharmonic_data(data_file_loc: str, u: df.Function, checkpoint: int = 0):
+
+    # Check u is a vector function, to avoid silent seg-fault. Looks horrible but might work for CG-spaces
+    assert u.function_space().num_sub_spaces() > 0, "Is u a function in a VectorFunctionSpace?"
 
     with df.XDMFFile(data_file_loc + "/output_.xdmf") as infile:
         infile.read_checkpoint(u, "output", checkpoint)
