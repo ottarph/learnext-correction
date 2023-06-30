@@ -1,6 +1,7 @@
 import numpy as np
 import dolfin as df
-
+import fem_nets
+import torch
 
 def load_mesh(mesh_file_loc: str):
 
@@ -51,4 +52,56 @@ def load_biharmonic_data(data_file_loc: str, u: df.Function, checkpoint: int = 0
     return u
 
 
+from typing import NewType, Any
+Femnet = NewType("Femnet", Any)
 
+def fenics_to_femnet(u: df.Function) -> Femnet:
+
+    u_fn = fem_nets.to_torch(u.function_space())
+    u_fn.double()
+    u_fn.set_from_coefficients(u.vector().get_local())
+
+    return u_fn
+
+def femnet_to_fenics(u_fn: Femnet, V: df.FunctionSpace) -> df.Function:
+    """
+        Is inefficient for now, as it evaluates the network at all dof points, meaning it needs
+        to build a large vandermonde matrix, instead of using coefficients which might be
+        stored good enough in the network.
+    """
+    if V.num_sub_spaces() > 0:
+        return femnet_to_fenics_vector(u_fn, V)
+    else:
+        return femnet_to_fenics_scalar(u_fn, V)
+
+def femnet_to_fenics_vector(u_fn: Femnet, V: df.FunctionSpace) -> df.Function:
+
+    u = df.Function(V)
+    dof_coordinates = V.tabulate_dof_coordinates()[::2]
+    x_torch = torch.tensor(dof_coordinates[None,...], dtype=torch.double)
+    y_torch = u_fn(x_torch)
+    y_np = y_torch[0,...].detach().numpy()
+
+    new_u_dofs = np.zeros(dof_coordinates.shape[0]*2, dtype=float)
+
+    new_u_dofs[::2] = y_np[:,0]  # Insert the x_dofs from femnet
+    new_u_dofs[1::2] = y_np[:,1] # Insert the y_dofs from femnet
+
+    u2 = df.Function(V)
+    u2.vector()[:] = new_u_dofs
+
+    return u2
+
+def femnet_to_fenics_scalar(u_fn: Femnet, V: df.FunctionSpace) -> df.Function:
+
+    u = df.Function(V)
+    dof_coordinates = V.tabulate_dof_coordinates()
+
+    x_torch = torch.tensor(dof_coordinates[None,...], dtype=torch.double)
+    y_torch = u_fn(x_torch)
+    y_np = y_torch[0,...].detach().numpy()
+
+    u2 = df.Function(V)
+    u2.vector()[:] = y_np
+
+    return u2
