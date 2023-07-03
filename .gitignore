@@ -1,2 +1,10 @@
 __pycache__
+
+# Figures used in visualizing tests.
 test/figures
+
+# Figures used to evaluate runs
+problems/figures
+
+# Serialized torch tensors like vandermonde matrices. 
+*.t
