@@ -8,3 +8,5 @@ problems/figures
 
 # Serialized torch tensors like vandermonde matrices. 
 *.t
+
+fenics_output

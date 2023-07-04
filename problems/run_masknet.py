@@ -14,13 +14,11 @@ from typing import Callable
 
 class MLP(nn.Module):
 
-    def __init__(self, widths: list[int], activation: Callable = nn.ReLU()):
+    def __init__(self, widths: list[int], activation: Callable[[torch.Tensor], torch.Tensor] = nn.ReLU()):
         super().__init__()
 
         self.widths = widths
         self.activation = activation
-        self.cost_function: callable = None
-        self.optimizer: torch.optim = None
 
         layers = []
         for w1, w2 in zip(widths[:-1], widths[1:]):
@@ -50,20 +48,52 @@ class Context:
 
         self.epoch: int = 0
         self.train_hist: list[float] = []
-        self.test_hist: list[float] = []
+        self.test_hist: dict[int, float] = {}
 
         return
     
+    def save(self, fname: str) -> None:
+
+        data_train = np.array(self.train_hist)
+        data_test = np.zeros((2, len(self.test_hist.values())))
+        data_test[1,:] = np.array(list(self.test_hist.values()))
+        data_test[0,:] = np.array(list(self.test_hist.keys()))
+
+        np.savetxt(fname+".train.txt", data_train)
+        np.savetxt(fname+".test.txt", data_test)
+
+        torch.save(self.network.state_dict(), fname+".pt")
+
+        return
+    
+    def load(self, fname: str) -> None:
+
+        data_train = np.loadtxt(fname+".train.txt")
+        data_test = np.loadtxt(fname+".test.txt")
+
+        self.epoch = data_train.shape[0]
+        self.train_hist = list(data_train)
+        if data_test.shape == (0,):
+            self.test_hist = {}
+        else:
+            self.test_hist = {int(i): l for i, l in zip(data_test[0,:], data_test[1,:])}
+
+        self.network.load_state_dict(torch.load(fname+".pt"))
+
+        return
 
 
 
 def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callback: Callable[[Context], None] | None) -> None:
     network = context.network
 
-    context.optimizer.zero_grad()
-    cost = context.cost_function(network(x), y)
-    cost.backward()
-    context.optimizer.step()
+    def closure():
+        context.optimizer.zero_grad()
+        cost = context.cost_function(network(x), y)
+        cost.backward()
+        return cost
+    
+    cost = context.optimizer.step(closure)
 
     context.train_hist.append(cost.item())
     context.epoch += 1
@@ -112,6 +142,8 @@ def main():
     from timeit import default_timer as timer
     from conf import OutputLoc, vandermonde_loc
 
+    torch.manual_seed(0)
+
     data_file_loc = OutputLoc + "/Extension/Data"
     mesh_file_loc = OutputLoc + "/Mesh_Generation"
 
@@ -137,17 +169,20 @@ def main():
 
     cost_function = nn.MSELoss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    optimizer = torch.optim.Adam(mlp.parameters())
+    # optimizer = torch.optim.Adam(mlp.parameters())
+    optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe")
 
     context = Context(network, cost_function, optimizer)
     checkpoint = 0
-    num_epochs = 200
+    num_epochs = 20
 
     start = timer()
 
     harmonic_to_biharmonic_train_single_checkpoint(context, checkpoint, num_epochs)
 
     end = timer()
+
+    context.save("models/2_128_2_LBFGS")
 
 
     plt.figure()
@@ -159,7 +194,7 @@ def main():
     u_bih_fn.vandermonde = torch.load(vandermonde_loc)
     u_bih_fn.invalidate_cache = False
 
-    print(network(eval_coords) - u_bih_fn(eval_coords))
+    print(torch.mean(torch.linalg.norm(network(eval_coords) - u_bih_fn(eval_coords), dim=-1)))
 
     plt.figure(figsize=(12,6))
     x = eval_coords[0,...].detach().numpy()
