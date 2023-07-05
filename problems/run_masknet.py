@@ -3,8 +3,6 @@ import dolfin as df
 import torch
 import torch.nn as nn
 
-torch.set_default_dtype(torch.float64)
-
 from tools.loading import *
 from tools.plots import *
 
@@ -69,6 +67,7 @@ def harmonic_to_biharmonic_train_single_checkpoint(context: Context, checkpoint:
 
 
 def main():
+    torch.set_default_dtype(torch.float64)
     
     from timeit import default_timer as timer
     from conf import OutputLoc, vandermonde_loc
@@ -95,17 +94,17 @@ def main():
 
     eval_coords = torch.tensor(V.tabulate_dof_coordinates()[::2][None,...])
 
-    network = masknet(mlp, base, mask)
+    network = FemNetMasknet(mlp, base, mask)
     network.load_vandermonde(vandermonde_loc)
 
     cost_function = nn.MSELoss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    # optimizer = torch.optim.Adam(mlp.parameters())
-    optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe")
+    optimizer = torch.optim.Adam(mlp.parameters())
+    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe")
 
     context = Context(network, cost_function, optimizer)
     checkpoint = 0
-    num_epochs = 20
+    num_epochs = 10
 
     start = timer()
 
@@ -113,7 +112,7 @@ def main():
 
     end = timer()
 
-    context.save("models/2_128_2_LBFGS")
+    # context.save("models/2_128_2_LBFGS")
 
 
     plt.figure()

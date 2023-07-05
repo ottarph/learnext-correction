@@ -30,6 +30,21 @@ class MLP(nn.Module):
         assert x.shape[-1] == self.widths[0], "Dimension of argument must match in non-batch dimension."
 
         return self.layers(x)
+    
+
+class TensorModule(nn.Module):
+
+    def __init__(self, x: torch.Tensor):
+        super().__init__()
+
+        self.x = x.detach().clone()
+        self.x.requires_grad_(False)
+
+        return
+    
+    def forward(self, *args, **kwargs):
+        return self.x
+    
 
 class Context:
 

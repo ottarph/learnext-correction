@@ -8,15 +8,29 @@ def test_mlp():
     activation = nn.ReLU()
     mlp = MLP(widths, activation=activation)
 
+    summ = torch.zeros((1,))
     x = torch.rand((4, 2))
-    print(mlp(x))
+    summ += mlp(x).sum()
     x = torch.rand((1, 4, 2))
-    print(mlp(x))
+    summ += mlp(x).sum()
     x = torch.rand((3, 4, 2))
-    print(mlp(x))
+    summ += mlp(x).sum()
 
     return
 
+def test_tensor_module():
+
+    x = torch.tensor([[1.0, 2.0],[3.0, 4.0], [5.0, 6.0]])
+
+    tm = TensorModule(x)
+
+    summ = torch.zeros((1,))
+    y = tm(torch.tensor([1.0, 2.0]))
+    summ += y.sum()
+    y = tm(torch.tensor([[1.0, 2.0]]))
+    summ += y.sum()
+
+    return
 
 def test_context():
 
@@ -86,4 +100,5 @@ def test_context():
 
 if __name__ == "__main__":
     test_mlp()
+    test_tensor_module()
     test_context()

@@ -55,11 +55,9 @@ def laplace_extension(g: df.Function) -> df.Function:
 
     return uh
 
+class MaskNet(nn.Module):
 
-class masknet(nn.Module):
-
-    def __init__(self, network: nn.Module, base: fem_nets.networks.VectorLagrangeNN, 
-                 mask: fem_nets.networks.LagrangeNN):
+    def __init__(self, network: nn.Module, base: nn.Module, mask: nn.Module):
         super().__init__()
 
         self.network = network
@@ -71,6 +69,25 @@ class masknet(nn.Module):
             parameter.requires_grad_(False)
         for parameter in self.base.parameters():
             parameter.requires_grad_(False)
+
+        return
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        assert len(x.shape) >= 2
+        assert x.shape[-1] == 2
+    
+        a = self.base(x)
+        b = self.mask(x)[...,None] # Mask output must be unsqueezed to broadcast scalar to vector in last two dimensionsø
+        c = self.network(x)
+
+        return a + b * c
+
+class FemNetMasknet(MaskNet):
+
+    def __init__(self, network: nn.Module, base: fem_nets.networks.VectorLagrangeNN, 
+                 mask: fem_nets.networks.LagrangeNN):
+        super().__init__(network, base, mask)
 
         self.base.invalidate_cache = False # Don't build the vandermonde matrix again every evaluation
         self.mask.invalidate_cache = False # Don't build the vandermonde matrix again every evaluation
@@ -113,16 +130,19 @@ class masknet(nn.Module):
         return
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        assert len(x.shape) >= 3, "Fem-nets require (batch_dim, num_points, euclidean_dim)-shape inputs"
+        return super().forward(x)
 
-        assert len(x.shape) >= 2
-        assert x.shape[-1] == 2
 
-        a = self.base(x)
-        b = self.mask(x)[...,None]
-        c = self.network(x)
+from networks.general import TensorModule    
+class TensorMaskNet(MaskNet):
 
-        return a + b * c
-    
+    def __init__(self, network: nn.Module, base: TensorModule | torch.Tensor, mask: TensorModule | torch.Tensor):
+        if isinstance(base, torch.Tensor): base = TensorModule(base)
+        if isinstance(mask, torch.Tensor): mask = TensorModule(mask)
+        super().__init__(network, base, mask)
+
+        return
 
 
 

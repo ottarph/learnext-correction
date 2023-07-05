@@ -10,3 +10,9 @@ problems/figures
 *.t
 
 fenics_output
+
+test_data
+
+models
+
+*.png
