@@ -20,9 +20,13 @@ def CG2_vector_to_array(u: df.Function) -> np.ndarray:
     return np.column_stack((raw_array[::2], raw_array[1::2]))
 
 def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str) -> None:
+    """
+        Each CG2 function from learnext mesh takes 240kB to store on disk.
+        For 2400 checkpoints, with both harmonic and biharmonic, saving all
+        checkpoints as .npy-files should take about one GB.
+    """
 
-
-    from tools.loading import load_mesh, load_harmonic_data, load_biharmonic_data
+    from tools.loading import load_mesh
     from conf import OutputLoc
 
     _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
