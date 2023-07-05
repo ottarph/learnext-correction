@@ -24,7 +24,7 @@ mask = fenics_to_femnet(laplace_mask(V_scal))
 
 eval_coords = torch.tensor(V.tabulate_dof_coordinates()[::2][None,...])
 
-network = masknet(mlp, base, mask)
+network = FemNetMasknet(mlp, base, mask)
 network.load_vandermonde(vandermonde_loc)
 
 
