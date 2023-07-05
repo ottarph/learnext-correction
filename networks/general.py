@@ -90,3 +90,23 @@ class Context:
 
         return
 
+
+def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callback: Callable[[Context], None] | None) -> None:
+    network = context.network
+
+    def closure():
+        context.optimizer.zero_grad()
+        cost = context.cost_function(network(x), y)
+        cost.backward()
+        return cost
+    
+    cost = context.optimizer.step(closure)
+
+    context.train_hist.append(cost.item())
+    context.epoch += 1
+
+    if callback is not None:
+        callback(context)
+
+    return
+

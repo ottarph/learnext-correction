@@ -9,28 +9,6 @@ from tools.plots import *
 from networks.masknet import *
 from networks.general import *
 
-from typing import Callable
-
-
-
-def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callback: Callable[[Context], None] | None) -> None:
-    network = context.network
-
-    def closure():
-        context.optimizer.zero_grad()
-        cost = context.cost_function(network(x), y)
-        cost.backward()
-        return cost
-    
-    cost = context.optimizer.step(closure)
-
-    context.train_hist.append(cost.item())
-    context.epoch += 1
-
-    if callback is not None:
-        callback(context)
-
-    return
 
 def harmonic_to_biharmonic_train_single_checkpoint(context: Context, checkpoint: int, num_epochs: int) -> None:
 
