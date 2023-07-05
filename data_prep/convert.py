@@ -19,7 +19,7 @@ def CG2_vector_to_array(u: df.Function) -> np.ndarray:
 
     return np.column_stack((raw_array[::2], raw_array[1::2]))
 
-def convert_checkpoints_to_npz(checkpoints: Iterable[int], prefix: str) -> None:
+def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str) -> None:
 
 
     from tools.loading import load_mesh, load_harmonic_data, load_biharmonic_data
@@ -51,5 +51,5 @@ def convert_checkpoints_to_npz(checkpoints: Iterable[int], prefix: str) -> None:
 if __name__ == "__main__":
 
 
-    convert_checkpoints_to_npz(range(10), prefix="data_prep/data_store/learnextCG2")
+    convert_checkpoints_to_npy(range(10), prefix="data_prep/data_store/learnextCG2")
 
