@@ -19,7 +19,7 @@ def CG2_vector_to_array(u: df.Function) -> np.ndarray:
 
     return np.column_stack((raw_array[::2], raw_array[1::2]))
 
-def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str) -> None:
+def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str, cb_print: int = 20) -> None:
     """
         Each CG2 function from learnext mesh takes 240kB to store on disk.
         For 2400 checkpoints, with both harmonic and biharmonic, saving all
@@ -38,6 +38,8 @@ def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str) -> None:
     harmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "input_.xdmf")
     biharmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "output_.xdmf")
     for checkpoint in checkpoints:
+        if checkpoint % cb_print == 0:
+            print(f"{checkpoint=}")
         harmonic_file.read_checkpoint(harmonic, "input", checkpoint)
         biharmonic_file.read_checkpoint(biharmonic, "output", checkpoint)
 
@@ -54,6 +56,13 @@ def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str) -> None:
 
 if __name__ == "__main__":
 
+    from timeit import default_timer as timer
 
-    convert_checkpoints_to_npy(range(10), prefix="data_prep/data_store/learnextCG2")
+    start = timer()
+
+    # convert_checkpoints_to_npy(range(2400+1), prefix="data_prep/data_store/learnextCG2")
+
+    end = timer()
+    
+    print((end - start)*1e0)
 

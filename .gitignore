@@ -18,3 +18,5 @@ models
 *.png
 
 data_store
+
+.vscode/
