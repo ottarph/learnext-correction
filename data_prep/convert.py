@@ -49,8 +49,6 @@ def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str, cb_print
         np.save(prefix+f".harmonic.{checkpoint:04}.npy", harmonic_np)
         np.save(prefix+f".biharmonic.{checkpoint:04}.npy", biharmonic_np)
 
-
-
     return
 
 

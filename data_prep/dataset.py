@@ -16,7 +16,7 @@ class learnextDataset(Dataset):
     def __len__(self) -> int:
         return len(self.checkpoints)
     
-    def __getitem__(self, index) -> np.ndarray:
+    def __getitem__(self, index) -> torch.Tensor:
         harm_arr = np.load(self.prefix+f".harmonic.{index:04}.npy")
         biharm_arr = np.load(self.prefix+f".biharmonic.{index:04}.npy")
 
