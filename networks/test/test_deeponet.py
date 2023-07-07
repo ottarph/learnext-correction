@@ -4,9 +4,22 @@ import torch.nn as nn
 
 from networks.deeponet import *
 
-def test_reduction():
+torch.manual_seed(0)
 
-    torch.manual_seed(0)
+test_dimensions = {
+    # Making sure the integers are all different, so no checks fail silently
+    "input_domain_dim": 5,
+    "input_range_dim": 4,
+    "output_domain_dim": 3,
+    "output_range_dim": 2,
+    "function_batch": 8,
+    "num_sens": 7,
+    "num_eval": 6,
+    "width": 4,
+    "net_max_width": 10
+}
+
+def test_reduction():
 
     # We need
     #    out.shape            = (Function batch dim, Num evaluations dim, Output range dim),
@@ -15,10 +28,10 @@ def test_reduction():
     #    trunk_weights.shape  = (Function batch dim, Num evaluations dim, Output range dim, width),
     # to broadcast correctly.
 
-    func_batch = 2
-    num_eval = 2
-    output_range = 3
-    width = 4
+    func_batch = test_dimensions["function_batch"]
+    num_eval = test_dimensions["num_eval"]
+    output_range = test_dimensions["output_range_dim"]
+    width = test_dimensions["width"]
 
     bw = torch.rand((func_batch, 1, output_range, width))
     tw = torch.rand((func_batch, num_eval, output_range, width))
@@ -43,27 +56,29 @@ def test_branch():
 
     from networks.general import MLP
 
-    input_domain_dim = 3
-    input_range_dim = 2
-    output_domain_dim = 2
-    output_range_dim = 2
-    function_batch = 2
-    num_sens = 3
-    width = 4
-    net_widths = [input_range_dim*num_sens, 8, output_range_dim*width]
+    input_domain_dim = test_dimensions["input_domain_dim"]
+    input_range_dim = test_dimensions["input_range_dim"]
+    output_domain_dim = test_dimensions["output_domain_dim"]
+    output_range_dim = test_dimensions["output_range_dim"]
+    function_batch = test_dimensions["function_batch"]
+    num_sens = test_dimensions["num_sens"]
+    width = test_dimensions["width"]
+    net_max_width = test_dimensions["net_max_width"]
+    net_widths = [input_range_dim*num_sens, net_max_width, output_range_dim*width]
 
     sensors = torch.rand((num_sens, input_domain_dim))
 
     net = MLP(net_widths, nn.ReLU())
-    branch_net = BranchNetwork(net, sensors, input_domain_dim, input_range_dim, width)
+    branch_net = BranchNetwork(net, sensors, 
+                               input_domain_dim, input_range_dim, 
+                               output_domain_dim, output_range_dim, width)
 
     def f(x):
-        return torch.column_stack([2*x[...,0], -x[...,1]])
-    u1 = f(sensors)
-    u2 = -u1
-    u = torch.zeros((2, *u1.shape))
-    u[0,...] = u1
-    u[1,...] = u2
+        return torch.column_stack([(i+1)*x[...,0] for i in range(input_range_dim)])
+    ui = f(sensors)
+    u = torch.zeros((function_batch, *ui.shape))
+    for i in range(function_batch):
+        u[i,...] = ui * (-1.0)**i
 
     assert u.shape == (function_batch, num_sens, input_range_dim)
     bw = branch_net(u)
@@ -72,7 +87,35 @@ def test_branch():
 
     return
 
+def test_trunk():
+
+    from networks.general import MLP
+
+    input_domain_dim = 3
+    input_domain_dim = test_dimensions["input_domain_dim"]
+    input_range_dim = test_dimensions["input_range_dim"]
+    output_domain_dim = test_dimensions["output_domain_dim"]
+    output_range_dim = test_dimensions["output_range_dim"]
+    function_batch = test_dimensions["function_batch"]
+    num_eval = test_dimensions["num_eval"]
+    width = test_dimensions["width"]
+    net_max_width = test_dimensions["net_max_width"]
+    net_widths = [output_domain_dim, net_max_width, output_range_dim*width]
+
+    net = MLP(net_widths, nn.ReLU())
+    trunk_net = TrunkNetwork(net,
+                             input_domain_dim, input_range_dim, 
+                             output_domain_dim, output_range_dim, width)
+
+    y = torch.rand((function_batch, num_eval, output_domain_dim))
+
+    tw = trunk_net(y)
+
+    assert tw.shape == (function_batch, num_eval, output_range_dim, width)
+
+    return
 
 if __name__ == "__main__":
     test_reduction()
     test_branch()
+    test_trunk()
