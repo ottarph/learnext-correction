@@ -184,10 +184,10 @@ class DeepONet(nn.Module):
 
         assert len(u.shape) == 3
         assert u.shape[1] == self.sensors.shape[0]
-        assert u.shape[2] == self.branch.range_dim
+        assert u.shape[2] == self.input_range_dim
 
         assert len(y.shape) == 3
-        assert y.shape[2] == self.trunk.domain_dim
+        assert y.shape[2] == self.output_domain_dim
 
         # We need
         #    out.shape            = (Function batch dim, Num evaluations dim, Output range dim),
@@ -207,6 +207,6 @@ class DeepONet(nn.Module):
         assert len(out.shape) == 3
         assert out.shape[0] == u.shape[0]
         assert out.shape[1] == y.shape[1]
-        assert out.shape[2] == self.trunk.range_dim
+        assert out.shape[2] == self.output_range_dim
 
         return out

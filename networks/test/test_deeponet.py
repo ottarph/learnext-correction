@@ -115,7 +115,63 @@ def test_trunk():
 
     return
 
+def test_deeponet():
+
+    from networks.general import MLP
+
+    input_domain_dim = test_dimensions["input_domain_dim"]
+    input_range_dim = test_dimensions["input_range_dim"]
+    output_domain_dim = test_dimensions["output_domain_dim"]
+    output_range_dim = test_dimensions["output_range_dim"]
+    function_batch = test_dimensions["function_batch"]
+    num_sens = test_dimensions["num_sens"]
+    num_eval = test_dimensions["num_eval"]
+    width = test_dimensions["width"]
+    net_max_width = test_dimensions["net_max_width"]
+
+    sensors = torch.rand((num_sens, input_domain_dim))
+
+
+    b_net_widths = [input_range_dim*num_sens, net_max_width, output_range_dim*width]
+
+    b_net = MLP(b_net_widths, nn.ReLU())
+    branch_net = BranchNetwork(b_net, sensors, 
+                               input_domain_dim, input_range_dim, 
+                               output_domain_dim, output_range_dim, width)
+    
+    t_net_widths = [output_domain_dim, net_max_width, output_range_dim*width]
+
+    t_net = MLP(t_net_widths, nn.ReLU())
+
+    trunk_net = TrunkNetwork(t_net,
+                             input_domain_dim, input_range_dim, 
+                             output_domain_dim, output_range_dim, width)
+
+    y = torch.rand((function_batch, num_eval, output_domain_dim))
+
+    def f(x):
+        return torch.column_stack([(i+1)*x[...,0] for i in range(input_range_dim)])
+    ui = f(sensors)
+    u = torch.zeros((function_batch, *ui.shape))
+    for i in range(function_batch):
+        u[i,...] = ui * (-1.0)**i
+
+    assert u.shape == (function_batch, num_sens, input_range_dim)
+
+    deeponet = DeepONet(branch_net, trunk_net, sensors, final_bias=False)
+    deeponet_w_bias = DeepONet(branch_net, trunk_net, sensors, final_bias=True)
+
+    gu = deeponet(u, y)
+    assert gu.shape == (function_batch, num_eval, output_range_dim)
+
+    gu_w_bias = deeponet_w_bias(u, y)
+    assert gu_w_bias.shape == (function_batch, num_eval, output_range_dim)
+
+    return
+
+
 if __name__ == "__main__":
     test_reduction()
     test_branch()
     test_trunk()
+    test_deeponet()
