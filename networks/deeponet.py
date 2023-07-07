@@ -2,49 +2,96 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from networks.general import MLP
 
 class BranchNetwork(nn.Module):
 
-    def __init__(self):
+    def __init__(self, net: nn.Module, sensors: torch.Tensor,
+                 domain_dim: int, range_dim: int, width: int):
         super().__init__()
 
-        self.domain_dim = 2
-        self.range_dim = 2
+        self.domain_dim = domain_dim
+        self.range_dim = range_dim
 
-        self.width = 2
+        self.width = width
         """ The number of features that are combined for output. """
+
+        self.net = net
+        self.sensors = sensors
+        assert len(sensors.shape) == 2
+        assert sensors.shape[1] == domain_dim
+
+        if isinstance(net, MLP):
+            assert net.layers[0].in_features == sensors.shape[0]*range_dim
 
         return
     
     def forward(self, u: torch.Tensor) -> torch.Tensor:
-        assert u.shape[-1] == self.range_dim
+        """
+            Takes inputs of shape
+                ``(function_batch_dim, sensors_dim, range_dim)``
+            Returns output of shape
+                ``(function_batch_dim, 1, range_dim, width)``
 
+            Flattens inputs to one vector for each function in batch, then 
+            `net` produces `range_dim*width` features for each function
+            in batch and the result is reshaped for reduction in `DeepONet`.
 
-        return
+            Note: Maybe the logic on flattening and reshaping should be 
+            left to other classes, not necessarily true that u_x should
+            be mixed with and u_y immediately, or that G(u)_x should be 
+            built from the same features as G(u)_y.
+        """
+        assert len(u.shape) == 3
+        assert u.shape[1] == self.sensors.shape[0]
+        assert u.shape[2] == self.range_dim
+
+        """ Flatten the range_dim dimension. """
+        u_flat = u.flatten(start_dim=1)
+
+        out = self.net(u_flat)
+
+        assert out.shape == (u.shape[0], self.range_dim*self.width)
+
+        out_nonflat = out.reshape(u.shape[0], 1, self.range_dim, self.width)
+
+        return out_nonflat
     
 class TrunkNetwork(nn.Module):
 
-    def __init__(self):
+    def __init__(self, net: nn.Module,
+                 domain_dim: int, range_dim: int, width: int):
         super().__init__()
 
-        self.domain_dim = 2
-        self.range_dim = 2
+        self.domain_dim = domain_dim
+        self.range_dim = range_dim
 
-        self.width = 2
+        self.width = width
         """ The number of features that are combined for output. """
+
+        self.net = net
 
         return
     
     def forward(self, y: torch.Tensor) -> torch.Tensor:
-        assert y.shape[-1] == self.domain_dim
+        """
+            Takes inputs of shape
+                ``(function_batch_dim, evaluations_dims, range_dim)``
+        """
+        assert len(y.shape) == 3
+        assert y.shape[2] == self.domain_dim
 
-        return
+        return self.net(y)
 
 
 class DeepONet(nn.Module):
+    """
+        Am i considering the right structure?
+            https://arxiv.org/pdf/2202.08942.pdf
+    """
 
     def __init__(self, branch: BranchNetwork, trunk: TrunkNetwork,
-                       sensors: torch.Tensor, final_bias: bool = False):
+                 sensors: torch.Tensor, final_bias: bool = False):
         super().__init__()
         
         self.branch = branch
