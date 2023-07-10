@@ -22,3 +22,5 @@ data_store
 .vscode/
 
 foo/
+
+.pytest_cache/
