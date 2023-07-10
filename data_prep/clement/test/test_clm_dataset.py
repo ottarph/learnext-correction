@@ -19,6 +19,7 @@ def test_dataset():
     assert harms.shape[-1] == 6 # u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y
     assert len(biharms.shape) == 3
     assert biharms.shape[-1] == 2 # u_x, u_y
+    assert harms.shape[1] == 3935 # Dofs located at each of the 3935 vertices of the learnExt mesh.
     assert torch.linalg.norm(harms - harms[0,...]) > 0.0
     assert torch.linalg.norm(biharms - biharms[0,...]) > 0.0
     assert torch.all( torch.linalg.norm(biharms - harms[:,:,:2], dim=(1,2)) > 0.0 )

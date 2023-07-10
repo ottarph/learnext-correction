@@ -17,6 +17,7 @@ def test_dataset():
 
     assert len(harms.shape) == 3
     assert harms.shape[-1] == 2
+    assert harms.shape[1] == 15300 # Dofs located at each of all the vertices and facet midpoints, 15300 in total.
     assert torch.linalg.norm(harms - harms[0,...]) > 0.0
     assert torch.linalg.norm(biharms - biharms[0,...]) > 0.0
     assert torch.all( torch.linalg.norm(biharms - harms, dim=(1,2)) > 0.0 )

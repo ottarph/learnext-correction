@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     start = timer()
 
-    convert_checkpoints_to_npy_clement_grad(range(2400+1), prefix="data_prep/clement/data_store/clm_grad", cb_print=20)
+    # convert_checkpoints_to_npy_clement_grad(range(2400+1), prefix="data_prep/clement/data_store/clm_grad", cb_print=20)
 
     end = timer()
     
