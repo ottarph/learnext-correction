@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     start = timer()
 
-    # convert_checkpoints_to_npy(range(2400+1), prefix="data_prep/data_store/learnextCG2")
+    # convert_checkpoints_to_npy(range(2400+1), prefix="data_prep/harm_biharm/data_store/learnextCG2")
 
     end = timer()
     

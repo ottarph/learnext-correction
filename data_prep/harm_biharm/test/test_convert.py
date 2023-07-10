@@ -1,4 +1,4 @@
-from data_prep.convert import *
+from data_prep.harm_biharm.convert import *
 
 
 def test_cg2_vector_to_array():

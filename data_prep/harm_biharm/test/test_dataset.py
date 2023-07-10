@@ -1,7 +1,7 @@
-from data_prep.dataset import *
+from data_prep.harm_biharm.dataset import *
 
 def test_dataset():
-    prefix = "data_prep/data_store/learnextCG2"
+    prefix = "data_prep/harm_biharm/data_store/learnextCG2"
     checkpoints = range(0, 2400+1)
 
     dataset = learnextDataset(prefix, checkpoints)
