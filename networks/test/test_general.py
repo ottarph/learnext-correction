@@ -21,14 +21,48 @@ def test_mlp():
 def test_tensor_module():
 
     x = torch.tensor([[1.0, 2.0],[3.0, 4.0], [5.0, 6.0]])
-
     tm = TensorModule(x)
+
+    assert torch.equal(tm(x), x)
 
     summ = torch.zeros((1,))
     y = tm(torch.tensor([1.0, 2.0]))
     summ += y.sum()
     y = tm(torch.tensor([[1.0, 2.0]]))
     summ += y.sum()
+
+    return
+
+def test_trim_module():
+
+    # Testing batch of three twenty-vertex (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y), as in clement grad net.
+    x = torch.rand((3, 20, 6))
+
+    forward_indices = [range(20), range(2)]
+    trim_mod = TrimModule(forward_indices=forward_indices)
+    y = trim_mod(x)
+    assert torch.equal(y, x[:, :, :2])
+
+    forward_indices = [range(10), range(2)]
+    trim_mod = TrimModule(forward_indices=forward_indices)
+    y = trim_mod(x)
+    assert torch.equal(y, x[:, :10, :2])
+
+    forward_indices = [range(5, 15), range(1, 3)]
+    trim_mod = TrimModule(forward_indices=forward_indices)
+    y = trim_mod(x)
+    assert torch.equal(y, x[:, 5:15, 1:3])
+
+    forward_indices = [range(2, 13, 2), range(1, 3)]
+    trim_mod = TrimModule(forward_indices=forward_indices)
+    y = trim_mod(x)
+    assert torch.equal(y, x[:, 2:13:2, 1:3])
+
+    forward_indices = [range(1, 5, 2)]
+    trim_mod = TrimModule(forward_indices=forward_indices)
+    y = trim_mod(x)
+    assert torch.equal(y, x[:, :, 1:5:2])
+
 
     return
 
@@ -101,4 +135,5 @@ def test_context():
 if __name__ == "__main__":
     test_mlp()
     test_tensor_module()
+    test_trim_module()
     test_context()

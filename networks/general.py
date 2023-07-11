@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from typing import Callable
+from typing import Callable, Iterable
 
 
 class MLP(nn.Module):
@@ -42,9 +42,35 @@ class TensorModule(nn.Module):
 
         return
     
-    def forward(self, *args, **kwargs):
+    def forward(self, *args, **kwargs) -> torch.Tensor:
         return self.x
     
+    
+class TrimModule(nn.Module):
+
+    def __init__(self, forward_indices: Iterable[range]):
+        """
+            A module whose `.forward(x)`-call returns `x`, but with the last
+            dimensions selected according to `forward_shape`.
+        """
+        super().__init__()
+
+        self.forward_indices = forward_indices
+        if len(forward_indices) == 0:
+            raise ValueError()
+        if len(forward_indices) > 2:
+            raise NotImplementedError()
+
+        return
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        view = x[...,self.forward_indices[-1]]
+        if len(self.forward_indices) == 2:
+            view = view[...,self.forward_indices[-2],:]
+            # return view2
+        return view
+
 
 class Context:
 
