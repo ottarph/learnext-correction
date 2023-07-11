@@ -72,6 +72,34 @@ class TrimModule(nn.Module):
         return view
 
 
+class PrependModule(nn.Module):
+
+    def __init__(self, prepend_tensor: torch.Tensor):
+        """
+            Inserts `prepend_tensor` as the first elements of the last dimension.
+
+            If `prepend_tensor` is `[a, b]` (shape=(N,2)) and you call the module on the tensor
+            `[x, y, z, w]` (shape=(N, 4)), then the output is `[a, b, x, y, z, w]` (shape=(N,6)).
+        """
+        super().__init__()
+
+        self.prepend_tensor = prepend_tensor
+
+        return
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        new_dims_shape = [1] * ( len(x.shape)-len(self.prepend_tensor.shape) ) + [*self.prepend_tensor.shape]
+        prep_tens = self.prepend_tensor.reshape(new_dims_shape)
+
+        expand_shape = [*x.shape[:-1]] + [self.prepend_tensor.shape[-1]]
+        prep_tens = prep_tens.expand(expand_shape)
+
+        out = torch.cat((prep_tens, x), dim=-1)
+
+        return out
+
+
 class Context:
 
     def __init__(self, network: nn.Module, cost_function: Callable, optimizer: torch.optim.Optimizer):

@@ -63,6 +63,113 @@ def test_trim_module():
     y = trim_mod(x)
     assert torch.equal(y, x[:, :, 1:5:2])
 
+    return
+
+def test_prepend_cat():
+
+    b = 1
+    n = 10
+    m1 = 2
+    m2 = 4
+    x = torch.rand((b, n, m1))
+    y = torch.rand((b, n, m2))
+    z = torch.cat((x, y), dim=-1)
+    w = torch.zeros_like(z)
+    for i in range(w.shape[-2]):
+        for j in range(x.shape[-1]):
+            w[...,i,j] = x[...,i,j]
+        for j in range(y.shape[-1]):
+            w[...,i,x.shape[-1]+j] = y[...,i,j]
+    assert torch.equal(z, w)
+
+    b2 = 2
+    x = torch.rand((b, b2, n, m1))
+    y = torch.rand((b, b2, n, m2))
+    z = torch.cat((x, y), dim=-1)
+    w = torch.zeros_like(z)
+    for i in range(w.shape[-2]):
+        for j in range(x.shape[-1]):
+            w[...,i,j] = x[...,i,j]
+        for j in range(y.shape[-1]):
+            w[...,i,x.shape[-1]+j] = y[...,i,j]
+    assert torch.equal(z, w)
+
+    return
+
+def test_prepend_expand():
+
+    prep = torch.rand(10, 2)
+    x = torch.rand(5, 6, 3, 10, 4)
+    new_prep = prep.reshape([1]*(len(x.shape)-len(prep.shape)) + [*prep.shape])
+    assert new_prep.shape == (1, 1, 1, 10, 2)
+
+    new_prep = prep.expand([*x.shape[:-1]]+[prep.shape[-1]])
+    assert new_prep.shape == (5, 6, 3, 10, 2)
+
+    y = torch.cat((new_prep, x), dim=-1)
+    assert torch.linalg.norm(y[...,:,:2] - prep).item() == 0.0
+    assert torch.linalg.norm(y[...,:,2:] - x).item() == 0.0
+
+    return
+
+def test_prepend_module():
+
+
+    batch = 5
+    N = 10
+    a = torch.rand((batch, N))
+    b = torch.rand((batch, N))
+    prepend_tensor = torch.zeros((batch, N, 2))
+    prepend_tensor[...,0] = a
+    prepend_tensor[...,1] = b
+
+    x = torch.rand((batch, N))
+    y = torch.rand((batch, N))
+    z = torch.rand((batch, N))
+    w = torch.rand((batch, N))
+    inp_vec = torch.zeros((batch, N, 4))
+    inp_vec[...,0] = x
+    inp_vec[...,1] = y
+    inp_vec[...,2] = z
+    inp_vec[...,3] = w
+
+    prep_mod = PrependModule(prepend_tensor=prepend_tensor)
+    out_vec = prep_mod(inp_vec)
+
+    assert torch.equal(out_vec[...,:2], prepend_tensor)
+    assert torch.equal(out_vec[...,2:], inp_vec)
+
+    batch = 5
+    N = 10
+    a = torch.rand((N,))
+    b = torch.rand((N,))
+    prepend_tensor = torch.zeros((N, 2))
+    prepend_tensor[:,0] = a
+    prepend_tensor[:,1] = b
+
+    x = torch.rand((batch, N))
+    y = torch.rand((batch, N))
+    z = torch.rand((batch, N))
+    w = torch.rand((batch, N))
+    inp_vec = torch.zeros((batch, N, 4))
+    inp_vec[...,0] = x
+    inp_vec[...,1] = y
+    inp_vec[...,2] = z
+    inp_vec[...,3] = w
+
+    prep_mod = PrependModule(prepend_tensor=prepend_tensor)
+    out_vec = prep_mod(inp_vec)
+
+    assert torch.linalg.norm(out_vec[...,:,:2] - prepend_tensor).item() == 0.0
+    assert torch.linalg.norm(out_vec[...,:,2:] - inp_vec).item() == 0.0
+
+    prep_tens = torch.rand(10, 2)
+    prep_mod = PrependModule(prep_tens)
+    inp_vec = torch.rand(5, 3, 4, 5, 10, 4)
+    out_vec = prep_mod(inp_vec)
+
+    assert torch.linalg.norm(out_vec[...,:,:2] - prep_tens).item() == 0.0
+    assert torch.linalg.norm(out_vec[...,:,2:] - inp_vec).item() == 0.0
 
     return
 
@@ -136,4 +243,7 @@ if __name__ == "__main__":
     test_mlp()
     test_tensor_module()
     test_trim_module()
+    test_prepend_cat()
+    test_prepend_expand()
+    test_prepend_module()
     test_context()
