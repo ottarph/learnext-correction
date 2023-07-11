@@ -20,8 +20,8 @@ class learnextClementDataset(Dataset):
         harm_arr = np.load(self.prefix+f".harm_plus_clm_grad.{index:04}.npy")
         biharm_arr = np.load(self.prefix+f".biharm.{index:04}.npy")
 
-        harm = torch.tensor(harm_arr, dtype=torch.get_default_dtype())
+        harm_plus_clm_grad = torch.tensor(harm_arr, dtype=torch.get_default_dtype())
         biharm = torch.tensor(biharm_arr, dtype=torch.get_default_dtype())
 
-        return harm, biharm
+        return harm_plus_clm_grad, biharm
     
