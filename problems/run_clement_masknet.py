@@ -88,7 +88,7 @@ def main():
     dataset = learnextClementDataset(prefix=prefix, checkpoints=train_checkpoints)
     
     
-    batch_size = 1024
+    batch_size = 16
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -109,8 +109,8 @@ def main():
 
     cost_function = nn.MSELoss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    optimizer = torch.optim.Adam(mlp.parameters())
-    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe")
+    # optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
+    optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
 
 
     context = Context(network, cost_function, optimizer)
@@ -122,7 +122,7 @@ def main():
         return
     # callback = None
 
-    num_epochs = 1
+    num_epochs = 20
 
     start = timer()
 
@@ -133,12 +133,13 @@ def main():
     print(f"{batch_size=}")
     print(f"T = {(end - start):.2f} s")
 
-    # context.save("models/8_128_2_clm")
+    context.save("models/LBFGS_8_128_2_clm")
 
 
-    # plt.figure()
+    plt.figure()
     # plt.plot(range(context.epoch), context.train_hist, 'k-')
-    # plt.savefig("foo/clm/train_hist.png", dpi=150)
+    plt.semilogy(range(context.epoch), context.train_hist, 'k-')
+    plt.savefig("foo/clm/LBFGS_train_hist.png", dpi=150)
 
 
     return
