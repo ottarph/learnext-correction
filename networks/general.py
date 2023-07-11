@@ -114,6 +114,10 @@ class Context:
 
         return
     
+    def __repr__(self) -> str:
+
+        return f"{self.network} \n{self.cost_function} \n{self.optimizer}"
+    
     def save(self, fname: str) -> None:
 
         data_train = np.array(self.train_hist)

@@ -75,7 +75,7 @@ class MaskNet(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         assert len(x.shape) >= 2
-        assert x.shape[-1] == 2
+        # assert x.shape[-1] == 2 # Not actually necessary, what if we want to use extra info like gradients?
     
         a = self.base(x)
         b = self.mask(x)[...,None] # Mask output must be unsqueezed to broadcast scalar to vector in last two dimensionsø
