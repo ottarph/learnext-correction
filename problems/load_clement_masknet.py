@@ -15,7 +15,7 @@ _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
 V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
 
-mask_df = laplace_mask(V_scal)
+mask_df = laplace_mask(V_scal, normalize=True)
 mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
 mask = TensorModule(mask_tensor)
 
@@ -71,6 +71,7 @@ optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") #
 
 context = Context(network, cost_function, optimizer)
 context.load("models/LBFGS_8_128_2_clm")
+# context.load("models/mask_ex_LBFGS_8_128_2_clm")
 
 
 print(x.shape)
@@ -91,7 +92,23 @@ print(np.max(np.abs(new_dofs)))
 
 u_diff.vector().set_local(new_dofs)
 
-outfile = df.File("fenics_output/clem_masknet_LBFGS.pvd")
-outfile << u_diff
+# outfile = df.File("fenics_output/clem_masknet_LBFGS.pvd")
+# outfile << u_diff
 
 
+print(torch.mean(torch.abs(y - x[...,:2])))
+print(torch.mean(torch.abs(mask_net.network(x))))
+print(torch.mean(torch.abs(mask_net.network(x)*mask_net.mask(x)[...,None])))
+print(torch.mean(torch.abs(y - mask_net(x))))
+
+print(torch.min(mask_net.mask.x))
+print(torch.max(mask_net.mask.x))
+
+
+A_1 = mask_net.network[1].layers[0].weight.detach().clone()
+print(A_1)
+context.load("models/mask_ex_LBFGS_8_128_2_clm")
+A_2 = mask_net.network[1].layers[0].weight.detach().clone()
+print(A_2)
+
+print(A_1 - A_2)

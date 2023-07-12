@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import fem_nets
 
-def laplace_mask(V: df.FunctionSpace) -> df.Function:
+def laplace_mask(V: df.FunctionSpace, normalize: bool = False) -> df.Function:
     """
         -Delta u = 1 in Omega
                u = 0 on dOmega
@@ -26,6 +26,9 @@ def laplace_mask(V: df.FunctionSpace) -> df.Function:
 
     uh = df.Function(V)
     df.solve(a == l, uh, bc)
+    
+    if normalize:
+        uh.vector()[:] /= np.max(uh.vector()[:]) # Normalize mask to have sup-norm 1.
 
     return uh
 

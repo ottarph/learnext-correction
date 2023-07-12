@@ -59,7 +59,7 @@ def main():
 
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
 
-    mask_df = laplace_mask(V_scal)
+    mask_df = laplace_mask(V_scal, normalize = True)
     mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
     mask = TensorModule(mask_tensor)
 
@@ -122,7 +122,7 @@ def main():
         return
     # callback = None
 
-    num_epochs = 20
+    num_epochs = 10
 
     start = timer()
 
@@ -130,16 +130,17 @@ def main():
 
     end = timer()
 
-    print(f"{batch_size=}")
+    # print(f"{batch_size=}")
+    # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
 
-    context.save("models/LBFGS_8_128_2_clm")
+    context.save("models/mask_ex_LBFGS_8_128_2_clm")
 
 
     plt.figure()
     # plt.plot(range(context.epoch), context.train_hist, 'k-')
     plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    plt.savefig("foo/clm/LBFGS_train_hist.png", dpi=150)
+    plt.savefig("foo/clm/mask_ex_LBFGS_train_hist.png", dpi=150)
 
 
     return
