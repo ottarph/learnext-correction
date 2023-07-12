@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import fem_nets
 
-def laplace_mask(V: df.FunctionSpace, normalize: bool = False) -> df.Function:
+def poisson_mask(V: df.FunctionSpace, normalize: bool = False) -> df.Function:
     """
         -Delta u = 1 in Omega
                u = 0 on dOmega

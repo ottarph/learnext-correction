@@ -20,7 +20,7 @@ mlp = MLP(widths, activation=nn.ReLU())
 mlp.double()
 
 base = fenics_to_femnet(laplace_extension(u_bih))
-mask = fenics_to_femnet(laplace_mask(V_scal))
+mask = fenics_to_femnet(poisson_mask(V_scal))
 
 eval_coords = torch.tensor(V.tabulate_dof_coordinates()[::2][None,...])
 

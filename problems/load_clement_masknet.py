@@ -15,7 +15,7 @@ _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
 V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
 
-mask_df = laplace_mask(V_scal, normalize=True)
+mask_df = poisson_mask(V_scal, normalize=True)
 mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
 mask = TensorModule(mask_tensor)
 

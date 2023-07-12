@@ -19,7 +19,7 @@ def test_femnet_masknet():
     load_biharmonic_data(OutputLoc + "/Extension/Data", u_bih, 0)
 
     u_g_df = laplace_extension(u_bih)
-    m_df = laplace_mask(V_scal)
+    m_df = poisson_mask(V_scal)
 
     u_g_fn = fenics_to_femnet(u_g_df)
     m_fn = fenics_to_femnet(m_df)
@@ -67,7 +67,7 @@ def test_tensor_masknet():
     eval_coords = torch.tensor(eval_coords_np)
 
     u_g_df = laplace_extension(u_bih)
-    m_df = laplace_mask(V_scal)
+    m_df = poisson_mask(V_scal)
 
     base_array_raw = np.copy(u_g_df.vector()[:])
     base_array = np.column_stack((base_array_raw[::2], base_array_raw[1::2]))
