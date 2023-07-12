@@ -200,6 +200,7 @@ if __name__ == '__main__':
     msg = '|e|_0 = {:.4E}[{:.2f}] |e|_1 = {:.4E}[{:.2f}]'
     ncells = (4, 8, 16, 32, 64, 128)
 
+    print("Function value:")
     f = df.Expression(('sin(pi*(x[0]-x[1]))', 'cos(pi*(x[0]+x[1]))'), degree=5)
     # Fake displacement
     errors0, h0 = None, None
@@ -226,6 +227,7 @@ if __name__ == '__main__':
 
     print()
 
+    print("Gradient:")
     grad_f = df.Expression((('pi*cos(pi*(x[0]-x[1]))', '-pi*cos(pi*(x[0]-x[1]))'),
                             ('-pi*sin(pi*(x[0]+x[1]))', '-pi*sin(pi*(x[0]+x[1]))')), degree=5)
     # Reconstruct gradient
@@ -265,7 +267,46 @@ if __name__ == '__main__':
 
     print()
     
-    # For Hessians?
+    print("Hessian:")
+    hess_f_1 = df.Expression((('-pi*pi*sin(pi*(x[0]-x[1]))', 'pi*pi*sin(pi*(x[0]-x[1]))'),
+                             ('pi*pi*sin(pi*(x[0]-x[1]))', '-pi*pi*sin(pi*(x[0]-x[1]))')), degree=5)
+    
+    hess_f_2 = df.Expression((('-pi*pi*cos(pi*(x[0]+x[1]))', '-pi*pi*cos(pi*(x[0]+x[1]))'),
+                             ('-pi*pi*cos(pi*(x[0]+x[1]))', '-pi*pi*cos(pi*(x[0]+x[1]))')), degree=5)
+    
+    # Reconstruct Hessian?
+    errors0, h0 = None, None
+    for n in ncells:
+        mesh = df.UnitSquareMesh(n, n)
+        Q = df.VectorFunctionSpace(mesh, 'DG', 2)
+        qh = df.interpolate(f, Q)
+        qh_1, qh_2 = qh.split()
+        # At this point qh is only in L2 and difficult for standard
+        # interpolation. Want to reconstruct this in P1 and look at
+        # convergence
+        vh_1 = clement_interpolate(df.grad(df.grad(qh_1)))
+        vh_2 = clement_interpolate(df.grad(df.grad(qh_2)))
+
+        eL2_1 = df.errornorm(hess_f_1, vh_1, 'L2')
+        eL2_2 = df.errornorm(hess_f_2, vh_2, 'L2')
+        eL2 = np.sqrt(eL2_1**2 + eL2_2**2)
+        eH10_1 = df.errornorm(hess_f_1, vh_1, 'H10')
+        eH10_2 = df.errornorm(hess_f_2, vh_2, 'H10')
+        eH10 = np.sqrt(eH10_1**2 + eH10_2**2)
+        h = mesh.hmin()
+        
+        errors = np.array([eL2, eH10])
+        if errors0 is None:
+            rates = np.nan*np.ones_like(errors)
+        else:
+            rates = np.log(errors/errors0)/np.log(h/h0)
+        errors0, h0 = errors, h
+        print(msg.format(*sum(zip(errors, rates), ())))
+
+    print()
+
+    print("Laplacian:")
+    # For Hessians? (This is laplacian, not hessian)
     f = df.Expression('sin(pi*(x[0]-x[1]))', degree=5)
     #target = (cos(pi*(x[0]-x[1]))*pi, -cos(pi*(x[0]-x[1]))*pi)
     target = df.Expression('-sin(pi*(x[0]-x[1]))*pi*pi -sin(pi*(x[0]-x[1]))*pi*pi', degree=5)
