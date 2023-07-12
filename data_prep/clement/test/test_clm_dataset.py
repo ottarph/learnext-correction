@@ -1,7 +1,7 @@
 from data_prep.clement.dataset import *
 
 def test_dataset():
-    prefix = "data_prep/clement/data_store/clm_grad"
+    prefix = "data_prep/clement/data_store/grad/clm_grad"
     checkpoints = range(0, 2400+1)
 
     dataset = learnextClementDataset(prefix, checkpoints)

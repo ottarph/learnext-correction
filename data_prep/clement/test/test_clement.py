@@ -68,7 +68,38 @@ def test_clement_grad():
 
     return
 
-def test_reuse_matrix():
+
+def test_clement_hess():
+
+    def f(x):
+        return 3.0*x[0]**2 + 2.0*x[1]**2 - 1.0*x[0]*x[1]
+        
+    N = 10
+    mesh = df.UnitSquareMesh(N, N)
+
+    V = df.FunctionSpace(mesh, "CG", 2)
+
+    u = df.Function(V)
+    new_dofs = np.zeros_like(u.vector().get_local())
+    for i, x in enumerate(V.tabulate_dof_coordinates()):
+        new_dofs[i] = f(x)
+    u.vector().set_local(new_dofs)
+
+    Q = df.FunctionSpace(mesh, "DG", 2)
+    qh = df.interpolate(u, Q)
+    gh = clement_interpolate(df.grad(df.grad(qh)))
+
+    Np = N+1
+    Np2 = Np * Np
+    assert np.all(np.isclose(gh.compute_vertex_values()[:Np2], 6.0))
+    assert np.all(np.isclose(gh.compute_vertex_values()[Np2:2*Np2], -1.0))
+    assert np.all(np.isclose(gh.compute_vertex_values()[2*Np2:3*Np2], -1.0))
+    assert np.all(np.isclose(gh.compute_vertex_values()[3*Np2:], 4.0))
+
+    return
+
+
+def check_reuse_matrix():
 
     def f(x):
         return 3.0*x[0] + 2.0*x[1]
@@ -123,4 +154,5 @@ def test_reuse_matrix():
 if __name__ == "__main__":
     # clement_visualization()
     test_clement_grad()
-    test_reuse_matrix()
+    test_clement_hess()
+    # check_reuse_matrix()
