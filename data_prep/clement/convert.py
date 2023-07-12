@@ -205,8 +205,10 @@ if __name__ == "__main__":
 
     start = timer()
 
-    # convert_checkpoints_to_npy_clement_grad(range(2400+1), prefix="data_prep/clement/data_store/grad/clm_grad", cb_print=20)
-    convert_checkpoints_to_npy_clement_grad_hess(range(20+1), prefix="data_prep/clement/data_store/grad_hess/clm_grad_hess", cb_print=2)
+    # convert_checkpoints_to_npy_clement_grad(range(2400+1), 
+    #           prefix="data_prep/clement/data_store/grad/clm_grad", cb_print=20)
+    # convert_checkpoints_to_npy_clement_grad_hess(range(2400+1), 
+    #             prefix="data_prep/clement/data_store/grad_hess/clm_grad_hess", cb_print=20)
 
     end = timer()
     

@@ -38,10 +38,10 @@ network = nn.Sequential(prepend, mlp)
 mask_net = MaskNet(network, base, mask)
 
 
-from data_prep.clement.dataset import learnextClementDataset
+from data_prep.clement.dataset import learnextClementGradDataset
 from conf import train_checkpoints
 prefix = "data_prep/clement/data_store/clm_grad"
-dataset = learnextClementDataset(prefix=prefix, checkpoints=train_checkpoints)
+dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints)
 
 
 batch_size = 16
