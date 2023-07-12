@@ -1,4 +1,4 @@
-from problems.run_clement_grad_masknet import *
+from problems.run_clement_grad_hess_masknet import *
 
 
 # torch.set_default_dtype(torch.float64)
@@ -24,7 +24,7 @@ forward_indices = [range(2)]
 base = TrimModule(forward_indices=forward_indices)
 # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
-widths = [8, 128, 2]
+widths = [16, 128, 2]
 mlp = MLP(widths, activation=nn.ReLU())
 # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
@@ -38,10 +38,10 @@ network = nn.Sequential(prepend, mlp)
 mask_net = MaskNet(network, base, mask)
 
 
-from data_prep.clement.dataset import learnextClementGradDataset
+from data_prep.clement.dataset import learnextClementGradHessDataset
 from conf import train_checkpoints
-prefix = "data_prep/clement/data_store/grad/clm_grad"
-dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints)
+prefix = "data_prep/clement/data_store/grad_hess/clm_grad_hess"
+dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=train_checkpoints)
 
 
 batch_size = 16
@@ -49,7 +49,7 @@ shuffle = True
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 x, y = next(iter(dataloader))
-assert x.shape == (batch_size, fluid_mesh.num_vertices(), 6)
+assert x.shape == (batch_size, fluid_mesh.num_vertices(), 14)
 # In:  (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y), where u is from harmonic extension
 assert y.shape == (batch_size, fluid_mesh.num_vertices(), 2)
 # Out: (u_x, u_y), where u is from biharmonic extension
@@ -70,7 +70,7 @@ optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") #
 
 
 context = Context(network, cost_function, optimizer)
-context.load("models/LBFGS_8_128_2_clm")
+context.load("models/ADAM_16_128_2_clm_grad_hess")
 # context.load("models/mask_ex_LBFGS_8_128_2_clm")
 
 
@@ -92,7 +92,7 @@ print(np.max(np.abs(new_dofs)))
 
 u_diff.vector().set_local(new_dofs)
 
-# outfile = df.File("fenics_output/clem_masknet_LBFGS.pvd")
+# outfile = df.File("fenics_output/ADAM_16_128_2_clm_grad_hess.pvd")
 # outfile << u_diff
 
 
@@ -104,11 +104,3 @@ print(torch.mean(torch.abs(y - mask_net(x))))
 print(torch.min(mask_net.mask.x))
 print(torch.max(mask_net.mask.x))
 
-
-A_1 = mask_net.network[1].layers[0].weight.detach().clone()
-print(A_1)
-context.load("models/mask_ex_LBFGS_8_128_2_clm")
-A_2 = mask_net.network[1].layers[0].weight.detach().clone()
-print(A_2)
-
-print(A_1 - A_2)
