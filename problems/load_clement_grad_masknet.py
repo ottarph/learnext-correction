@@ -74,11 +74,11 @@ context.load("models/LBFGS_8_128_2_clm")
 # context.load("models/mask_ex_LBFGS_8_128_2_clm")
 
 
-print(x.shape)
-print(y.shape)
+# print(x.shape)
+# print(y.shape)
 
 u_diff_tensor = y[0,...] - mask_net(x)[0,...]
-print(u_diff_tensor.shape)
+# print(u_diff_tensor.shape)
 
 V = df.VectorFunctionSpace(fluid_mesh, "CG", 1, 2)
 u_diff = df.Function(V)
@@ -86,9 +86,9 @@ u_diff = df.Function(V)
 new_dofs = np.zeros_like(u_diff.vector().get_local())
 new_dofs[::2] = u_diff_tensor[:,0].double().detach().numpy()
 new_dofs[1::2] = u_diff_tensor[:,1].double().detach().numpy()
-print(new_dofs)
+# print(new_dofs)
 
-print(np.max(np.abs(new_dofs)))
+# print(np.max(np.abs(new_dofs)))
 
 u_diff.vector().set_local(new_dofs)
 
@@ -105,10 +105,10 @@ print(torch.min(mask_net.mask.x))
 print(torch.max(mask_net.mask.x))
 
 
-A_1 = mask_net.network[1].layers[0].weight.detach().clone()
-print(A_1)
-context.load("models/mask_ex_LBFGS_8_128_2_clm")
-A_2 = mask_net.network[1].layers[0].weight.detach().clone()
-print(A_2)
+# A_1 = mask_net.network[1].layers[0].weight.detach().clone()
+# print(A_1)
+# context.load("models/mask_ex_LBFGS_8_128_2_clm")
+# A_2 = mask_net.network[1].layers[0].weight.detach().clone()
+# print(A_2)
 
-print(A_1 - A_2)
+# print(A_1 - A_2)

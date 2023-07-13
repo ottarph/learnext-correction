@@ -93,7 +93,7 @@ def main():
     dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=train_checkpoints)
     
     
-    batch_size = 16
+    batch_size = 8
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -117,8 +117,8 @@ def main():
 
     cost_function = nn.MSELoss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
-    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
+    # optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
+    optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16?
 
 
     context = Context(network, cost_function, optimizer)
@@ -142,13 +142,13 @@ def main():
     # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
 
-    context.save("models/ADAM_16_128_2_clm_grad_hess")
+    context.save("models/LBFGS_16_128_2_clm_grad_hess")
 
 
     plt.figure()
     # plt.plot(range(context.epoch), context.train_hist, 'k-')
     plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    plt.savefig("foo/clm/ADAM_16_128_2_clm_grad_hess_train_hist.png", dpi=150)
+    plt.savefig("foo/clm_grad_hess/LBFGS_16_128_2_clm_grad_hess_train_hist.png", dpi=150)
 
 
     return
