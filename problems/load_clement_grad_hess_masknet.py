@@ -69,7 +69,7 @@ cost_function = nn.MSELoss()
 optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
 
 
-context = Context(network, cost_function, optimizer)
+context = Context(mask_net, cost_function, optimizer)
 context.load("models/ADAM_16_128_2_clm_grad_hess")
 # context.load("models/mask_ex_LBFGS_8_128_2_clm")
 

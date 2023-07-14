@@ -69,9 +69,11 @@ cost_function = nn.MSELoss()
 optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
 
 
-context = Context(network, cost_function, optimizer)
-context.load("models/LBFGS_8_128_2_clm")
+context = Context(mask_net, cost_function, optimizer)
+# context.load("models/LBFGS_8_128_2_clm")
+# context.load("models/new_mask_LBFGS_8_128_2_clm_grad")
 # context.load("models/mask_ex_LBFGS_8_128_2_clm")
+context.load("models/MAE_LBFGS_8_128_2_clm_grad")
 
 
 # print(x.shape)
@@ -96,14 +98,23 @@ u_diff.vector().set_local(new_dofs)
 # outfile << u_diff
 
 
-print(torch.mean(torch.abs(y - x[...,:2])))
-print(torch.mean(torch.abs(mask_net.network(x))))
-print(torch.mean(torch.abs(mask_net.network(x)*mask_net.mask(x)[...,None])))
-print(torch.mean(torch.abs(y - mask_net(x))))
 
-print(torch.min(mask_net.mask.x))
-print(torch.max(mask_net.mask.x))
+print(torch.mean(torch.linalg.norm(y-x[...,:2], ord=1, dim=-1)))
+print(torch.mean(torch.linalg.norm(mask_net.network(x), ord=1, dim=-1)))
+print(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=1, dim=-1)))
+print(torch.mean(torch.linalg.norm(y - mask_net(x), ord=1, dim=-1)))
+#MAE
+print()
 
+print(torch.sqrt(torch.mean(torch.linalg.norm(y - x[...,:2], ord=2, dim=-1)**2)))
+print(torch.sqrt(torch.mean(torch.linalg.norm(mask_net.network(x), ord=2, dim=-1)**2)))
+print(torch.sqrt(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=2, dim=-1)**2)))
+print(torch.sqrt(torch.mean(torch.linalg.norm(y - mask_net(x), ord=2, dim=-1)**2)))
+#RMSE
+
+
+# print(torch.linalg.norm(y - x[...,:2], dim=-1).shape)
+# print(y.shape)
 
 # A_1 = mask_net.network[1].layers[0].weight.detach().clone()
 # print(A_1)

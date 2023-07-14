@@ -125,7 +125,7 @@ def main():
     optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16?
 
 
-    context = Context(network, cost_function, optimizer)
+    context = Context(mask_net, cost_function, optimizer)
 
     print(context)
 
