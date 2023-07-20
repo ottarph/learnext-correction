@@ -11,38 +11,6 @@ from tools.plots import *
 from networks.masknet import *
 from networks.general import *
 
-from typing import Callable
-
-
-def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: int,
-                          callback: Callable[[Context], None] | None = None):
-
-    network = context.network
-    cost_function = context.cost_function
-    optimizer = context.optimizer
-
-
-    for _ in range(num_epochs):
-        epoch_loss = 0.0
-        for x, y in dataloader:
-
-            def closure():
-                optimizer.zero_grad()
-                loss = cost_function(network(x), y)
-                loss.backward()
-                return loss
-            
-            loss = optimizer.step(closure)
-
-            epoch_loss += loss.item()
-
-        context.epoch += 1
-        context.train_hist.append(epoch_loss)
-
-        if callback is not None:
-            callback(context)
-
-    return
 
 def main():
     # torch.set_default_dtype(torch.float64)
@@ -92,7 +60,7 @@ def main():
     
     
     # batch_size = 16
-    batch_size = 1024
+    batch_size = 128
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -111,11 +79,11 @@ def main():
     print("Pre-run assertions passed. \n")
 
 
-    # cost_function = nn.MSELoss()
-    cost_function = nn.L1Loss()
+    cost_function = nn.MSELoss()
+    # cost_function = nn.L1Loss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    # optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
-    optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
+    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
+    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
 
 
     context = Context(mask_net, cost_function, optimizer)
@@ -125,10 +93,10 @@ def main():
     def callback(context: Context) -> None:
         print(f"epoch #{context.epoch-1:03}, loss = {context.train_hist[-1]:.2e}")
         return
-    # callback = None
+    callback = None
 
     # num_epochs = 10
-    num_epochs = 10
+    num_epochs = 20
 
     start = timer()
 
@@ -140,13 +108,15 @@ def main():
     # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
 
-    context.save("models/MAE_LBFGS_8_128_2_clm_grad")
+    print(context.train_hist)
+
+    # context.save("models/MAE_LBFGS_8_128_2_clm_grad")
 
 
-    plt.figure()
-    # plt.plot(range(context.epoch), context.train_hist, 'k-')
-    plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    plt.savefig("foo/clm/MAE_LBFGS_8_128_2_clm_grad_train_hist.png", dpi=150)
+    # plt.figure()
+    # # plt.plot(range(context.epoch), context.train_hist, 'k-')
+    # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
+    # plt.savefig("foo/clm/MAE_LBFGS_8_128_2_clm_grad_train_hist.png", dpi=150)
 
 
     return

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from torch.utils.data import DataLoader
 from typing import Callable, Iterable
 
 
@@ -165,6 +166,44 @@ def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callb
 
     if callback is not None:
         callback(context)
+
+    return
+
+
+def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: int,
+                          callback: Callable[[Context], None] | None = None):
+
+    network = context.network
+    cost_function = context.cost_function
+    optimizer = context.optimizer
+
+    from tqdm import tqdm
+
+    epoch_loop = tqdm(range(1, num_epochs+1), position=0, desc="Epoch #000, loss = ???    ")
+    for epoch in epoch_loop:
+        epoch_loss = 0.0
+
+        dataloader_loop = tqdm(dataloader, desc="Mini-batch #000", position=1, leave=False)
+        for mb, (x, y) in enumerate(dataloader_loop, start=1):
+
+            def closure():
+                optimizer.zero_grad()
+                loss = cost_function(network(x), y)
+                loss.backward()
+                return loss
+            
+            loss = optimizer.step(closure)
+            epoch_loss += loss.item()
+
+            dataloader_loop.set_description_str(f"Mini-batch #{mb:03}")
+
+        context.epoch += 1
+        context.train_hist.append(epoch_loss)
+
+        epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {epoch_loss:.2e}")
+
+        if callback is not None:
+            callback(context)
 
     return
 
