@@ -7,16 +7,16 @@ def test_femnet_masknet():
     torch.set_default_dtype(torch.float64)
 
     import dolfin as df
-    from tools.loading import load_mesh, load_harmonic_data, load_biharmonic_data, \
+    from tools.loading import load_mesh, load_biharmonic_data, \
                               fenics_to_femnet
-    from conf import OutputLoc, vandermonde_loc
+    from conf import mesh_file_loc, biharmonic_file_loc, vandermonde_loc
 
-    _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
+    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 2)
     u_bih = df.Function(V)
-    load_biharmonic_data(OutputLoc + "/Extension/Data", u_bih, 0)
+    load_biharmonic_data(biharmonic_file_loc, u_bih, 0)
 
     u_g_df = laplace_extension(u_bih)
     m_df = poisson_mask(V_scal)
@@ -52,15 +52,15 @@ def test_tensor_masknet():
     torch.set_default_dtype(torch.float64)
 
     import dolfin as df
-    from tools.loading import load_mesh, load_harmonic_data, load_biharmonic_data
-    from conf import OutputLoc, vandermonde_loc
+    from tools.loading import load_mesh, load_biharmonic_data
+    from conf import mesh_file_loc, biharmonic_file_loc
 
-    _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
+    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 2)
     u_bih = df.Function(V)
-    load_biharmonic_data(OutputLoc + "/Extension/Data", u_bih, 0)
+    load_biharmonic_data(biharmonic_file_loc, u_bih, 0)
 
     eval_coords_np = V_scal.tabulate_dof_coordinates()
 

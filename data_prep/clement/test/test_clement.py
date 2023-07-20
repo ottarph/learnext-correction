@@ -2,21 +2,21 @@ import dolfin as df
 import numpy as np
 
 from data_prep.clement.clement import *
-from conf import OutputLoc
+from conf import mesh_file_loc, harmonic_file_loc, harmonic_label
 from tools.loading import *
 
 
 def clement_visualization():
 
-    _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
+    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     harmonic = df.Function(V)
 
-    harmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "input_.xdmf")
+    harmonic_file = df.XDMFFile(harmonic_file_loc)
 
     checkpoint = 0
-    harmonic_file.read_checkpoint(harmonic, "input", checkpoint)
+    harmonic_file.read_checkpoint(harmonic, harmonic_label, checkpoint)
 
     print(harmonic.compute_vertex_values())
     Q = df.VectorFunctionSpace(fluid_mesh, 'DG', 1)

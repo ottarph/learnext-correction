@@ -1,4 +1,12 @@
 OutputLoc = "../LearnExt/Output" # Specifiy which relative location problem data is stored in
+mesh_file_loc = OutputLoc + "/Mesh_Generation/"
+data_file_loc = OutputLoc + "/Extension/Data/"
+harmonic_file_loc = data_file_loc + "input_.xdmf"
+biharmonic_file_loc = data_file_loc + "output_.xdmf"
+
+harmonic_label = "input_harmonic_ext"
+biharmonic_label = "output_biharmonic_ext"
+
 vandermonde_loc = "models/vandermonde.t" # Location of saved vandermonde matrices, compute offline to save time.
 
 train_checkpoints = range(0, 1800) # Specify which checkpoints are to be regarded as training data.

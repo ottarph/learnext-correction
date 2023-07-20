@@ -1,11 +1,8 @@
 from problems.run_masknet import *
 
-from conf import OutputLoc, vandermonde_loc
+from conf import mesh_file_loc, biharmonic_file_loc, vandermonde_loc
 
 torch.manual_seed(0)
-
-data_file_loc = OutputLoc + "/Extension/Data"
-mesh_file_loc = OutputLoc + "/Mesh_Generation"
 
 total_mesh, fluid_mesh, solid_mesh = load_mesh(mesh_file_loc)
 
@@ -13,7 +10,7 @@ V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
 u_bih = df.Function(V)
 V_scal = df.FunctionSpace(fluid_mesh, "CG", 2)
 
-load_biharmonic_data(data_file_loc, u_bih, 0)
+load_biharmonic_data(biharmonic_file_loc, u_bih, 0)
 
 widths = [2, 128, 2]
 mlp = MLP(widths, activation=nn.ReLU())
@@ -24,14 +21,14 @@ mask = fenics_to_femnet(poisson_mask(V_scal))
 
 eval_coords = torch.tensor(V.tabulate_dof_coordinates()[::2][None,...])
 
-network = FemNetMasknet(mlp, base, mask)
-network.load_vandermonde(vandermonde_loc)
+masknet = FemNetMasknet(mlp, base, mask)
+masknet.load_vandermonde(vandermonde_loc)
 
 
 cost_function = nn.MSELoss()
 optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe")
 
-context = Context(network, cost_function, optimizer)
+context = Context(masknet, cost_function, optimizer)
 
 context.load("models/2_128_2_LBFGS")
 
@@ -41,7 +38,7 @@ plt.savefig("baz.png", dpi=100)
 
 """ Check maximum deviation """
 
-pred = network(eval_coords)
+pred = masknet(eval_coords)
 
 bih_fn = fenics_to_femnet(u_bih)
 bih_fn.vandermonde = mask.vandermonde.detach().clone()

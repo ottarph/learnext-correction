@@ -5,11 +5,9 @@ from problems.run_clement_grad_hess_masknet import *
 torch.set_default_dtype(torch.float32)
 
 from timeit import default_timer as timer
-from conf import OutputLoc
+from conf import mesh_file_loc
 
 torch.manual_seed(0)
-
-mesh_file_loc = OutputLoc + "/Mesh_Generation"
 
 _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 

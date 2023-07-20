@@ -31,25 +31,27 @@ def load_mesh(mesh_file_loc: str):
     return mesh, fluid_domain, solid_domain
 
 
-def load_harmonic_data(data_file_loc: str, u: df.Function, checkpoint: int = 0):
+def load_harmonic_data(harmonic_file_loc: str, u: df.Function, checkpoint: int = 0):
+    from conf import harmonic_label
 
     # Check u is a vector function, to avoid silent seg-fault. Looks horrible but might work for CG-spaces
     assert u.function_space().num_sub_spaces() > 0, "Is u a function in a VectorFunctionSpace?"
-    assert u.functon_space().dofmap().block_size() > 0, "Checks whether u.function_space() is a vector function space"
+    assert u.function_space().dofmap().block_size() > 0, "Checks whether u.function_space() is a vector function space"
 
-    with df.XDMFFile(data_file_loc + "/input_.xdmf") as infile:
-        infile.read_checkpoint(u, "input", checkpoint)
+    with df.XDMFFile(harmonic_file_loc) as infile:
+        infile.read_checkpoint(u, harmonic_label, checkpoint)
 
     return u
 
-def load_biharmonic_data(data_file_loc: str, u: df.Function, checkpoint: int = 0):
+def load_biharmonic_data(biharmonic_file_loc: str, u: df.Function, checkpoint: int = 0):
+    from conf import biharmonic_label
 
     # Check u is a vector function, to avoid silent seg-fault. Looks horrible but might work for CG-spaces
     assert u.function_space().num_sub_spaces() > 0, "Is u a function in a VectorFunctionSpace?"
-    assert u.functon_space().dofmap().block_size() > 0, "Checks whether u.function_space() is a vector function space"
+    assert u.function_space().dofmap().block_size() > 0, "Checks whether u.function_space() is a vector function space"
 
-    with df.XDMFFile(data_file_loc + "/output_.xdmf") as infile:
-        infile.read_checkpoint(u, "output", checkpoint)
+    with df.XDMFFile(biharmonic_file_loc) as infile:
+        infile.read_checkpoint(u, biharmonic_label, checkpoint)
 
     return u
 

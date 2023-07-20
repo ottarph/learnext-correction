@@ -27,21 +27,21 @@ def convert_checkpoints_to_npy(checkpoints: Iterable[int], prefix: str, cb_print
     """
 
     from tools.loading import load_mesh
-    from conf import OutputLoc
+    from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc, harmonic_label, biharmonic_label
 
-    _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
+    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     harmonic = df.Function(V)
     biharmonic = df.Function(V)
 
-    harmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "input_.xdmf")
-    biharmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "output_.xdmf")
+    harmonic_file = df.XDMFFile(harmonic_file_loc)
+    biharmonic_file = df.XDMFFile(biharmonic_file_loc)
     for checkpoint in checkpoints:
         if checkpoint % cb_print == 0:
             print(f"{checkpoint=}")
-        harmonic_file.read_checkpoint(harmonic, "input", checkpoint)
-        biharmonic_file.read_checkpoint(biharmonic, "output", checkpoint)
+        harmonic_file.read_checkpoint(harmonic, harmonic_label, checkpoint)
+        biharmonic_file.read_checkpoint(biharmonic, biharmonic_label, checkpoint)
 
         harmonic_np = CG2_vector_to_array(harmonic)
         biharmonic_np = CG2_vector_to_array(biharmonic)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     start = timer()
 
-    # convert_checkpoints_to_npy(range(2400+1), prefix="data_prep/harm_biharm/data_store/learnextCG2")
+    convert_checkpoints_to_npy(range(2400+1), prefix="data_prep/harm_biharm/data_store/learnextCG2")
 
     end = timer()
     

@@ -95,9 +95,9 @@ def convert_checkpoints_to_npy_clement_grad(checkpoints: Iterable[int], prefix: 
     """
     
     from tools.loading import load_mesh
-    from conf import OutputLoc
+    from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc, harmonic_label, biharmonic_label
 
-    _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
+    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
     V_cg2 = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     harmonic_cg2 = df.Function(V_cg2)
@@ -110,14 +110,14 @@ def convert_checkpoints_to_npy_clement_grad(checkpoints: Iterable[int], prefix: 
     Q = df.VectorFunctionSpace(fluid_mesh, "DG", 1, 2)
 
 
-    harmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "input_.xdmf")
-    biharmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "output_.xdmf")
+    harmonic_file = df.XDMFFile(harmonic_file_loc)
+    biharmonic_file = df.XDMFFile(biharmonic_file_loc)
     for checkpoint in checkpoints:
         if checkpoint % cb_print == 0:
             print(f"{checkpoint=}")
 
-        harmonic_file.read_checkpoint(harmonic_cg2, "input", checkpoint)
-        biharmonic_file.read_checkpoint(biharmonic_cg2, "output", checkpoint)
+        harmonic_file.read_checkpoint(harmonic_cg2, harmonic_label, checkpoint)
+        biharmonic_file.read_checkpoint(biharmonic_cg2, biharmonic_label, checkpoint)
 
         harmonic_cg1 = df.interpolate(harmonic_cg2, V_cg1)
         biharmonic_cg1 = df.interpolate(biharmonic_cg2, V_cg1)
@@ -153,9 +153,9 @@ def convert_checkpoints_to_npy_clement_grad_hess(checkpoints: Iterable[int], pre
     """
     
     from tools.loading import load_mesh
-    from conf import OutputLoc
+    from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc, harmonic_label, biharmonic_label
 
-    _, fluid_mesh, _ = load_mesh(OutputLoc + "/Mesh_Generation")
+    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
 
     V_cg2 = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     harmonic_cg2 = df.Function(V_cg2)
@@ -169,14 +169,14 @@ def convert_checkpoints_to_npy_clement_grad_hess(checkpoints: Iterable[int], pre
     Q_hess = df.VectorFunctionSpace(fluid_mesh, "DG", 2, 2)
 
 
-    harmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "input_.xdmf")
-    biharmonic_file = df.XDMFFile(OutputLoc + "/Extension/Data/" + "output_.xdmf")
+    harmonic_file = df.XDMFFile(harmonic_file_loc)
+    biharmonic_file = df.XDMFFile(biharmonic_file_loc)
     for checkpoint in checkpoints:
         if checkpoint % cb_print == 0:
             print(f"{checkpoint=}")
 
-        harmonic_file.read_checkpoint(harmonic_cg2, "input", checkpoint)
-        biharmonic_file.read_checkpoint(biharmonic_cg2, "output", checkpoint)
+        harmonic_file.read_checkpoint(harmonic_cg2, harmonic_label, checkpoint)
+        biharmonic_file.read_checkpoint(biharmonic_cg2, biharmonic_label, checkpoint)
 
         harmonic_cg1 = df.interpolate(harmonic_cg2, V_cg1)
         biharmonic_cg1 = df.interpolate(biharmonic_cg2, V_cg1)
@@ -207,6 +207,7 @@ if __name__ == "__main__":
 
     # convert_checkpoints_to_npy_clement_grad(range(2400+1), 
     #           prefix="data_prep/clement/data_store/grad/clm_grad", cb_print=20)
+    # print()
     # convert_checkpoints_to_npy_clement_grad_hess(range(2400+1), 
     #             prefix="data_prep/clement/data_store/grad_hess/clm_grad_hess", cb_print=20)
 

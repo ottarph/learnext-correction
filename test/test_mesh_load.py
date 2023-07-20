@@ -4,11 +4,9 @@ from dolfin import FunctionSpace, FiniteElement, Function, \
 import numpy as np
 import matplotlib.pyplot as plt
 
-from conf import OutputLoc
+from conf import mesh_file_loc
 
 """ First load the mesh """
-
-mesh_file_loc = OutputLoc + "/Mesh_Generation"
 
 from tools.loading import load_mesh
 
