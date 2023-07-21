@@ -9,7 +9,7 @@ def test_load_data():
 
     from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc
 
-    _, mesh, _ = load_mesh(mesh_file_loc)
+    _, mesh, _ = load_mesh_meshview(mesh_file_loc)
     V = df.VectorFunctionSpace(mesh, "CG", 2, 2)
     u = df.Function(V)
 
@@ -24,7 +24,7 @@ def main():
 
     from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc
 
-    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
+    _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     u = df.Function(V)

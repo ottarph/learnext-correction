@@ -14,7 +14,7 @@ def harmonic_to_biharmonic_train_single_checkpoint(context: Context, checkpoint:
 
     from conf import mesh_file_loc, biharmonic_file_loc
 
-    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
+    _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     u_bih = df.Function(V)
 
@@ -49,7 +49,7 @@ def main():
 
     torch.manual_seed(0)
 
-    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
+    _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     u_bih = df.Function(V)

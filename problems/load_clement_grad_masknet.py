@@ -10,7 +10,7 @@ from conf import mesh_file_loc
 torch.manual_seed(0)
 
 
-_, fluid_mesh, _ = load_mesh(mesh_file_loc)
+_, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
 
 V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
 

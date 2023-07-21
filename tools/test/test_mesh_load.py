@@ -6,7 +6,7 @@ from conf import mesh_file_loc, biharmonic_file_loc, biharmonic_label
 
 def test_mesh_load_meshview():
 
-    _, mesh_mv, _ = load_mesh(mesh_file_loc)
+    _, mesh_mv, _ = load_mesh_meshview(mesh_file_loc)
     assert mesh_mv.num_vertices() == 3935
 
     V_mv_cg2 = df.VectorFunctionSpace(mesh_mv, "CG", 2, 2)
@@ -32,7 +32,7 @@ def test_mesh_load_submesh():
 
 def test_create_meshview_submesh_conversion_array():
 
-    _, mesh_mv, _ = load_mesh(mesh_file_loc)
+    _, mesh_mv, _ = load_mesh_meshview(mesh_file_loc)
     mesh_sm = load_mesh_submesh(mesh_file_loc)
 
 
@@ -68,7 +68,7 @@ def test_create_meshview_submesh_conversion_array():
 
 def visualize_meshview_submesh_conversion_array():
 
-    _, mesh_mv, _ = load_mesh(mesh_file_loc)
+    _, mesh_mv, _ = load_mesh_meshview(mesh_file_loc)
     mesh_sm = load_mesh_submesh(mesh_file_loc)
 
 

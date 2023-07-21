@@ -3,7 +3,7 @@ import dolfin as df
 import fem_nets
 
 
-def load_mesh(mesh_file_loc: str) -> tuple[df.Mesh, df.Mesh, df.Mesh]:
+def load_mesh_meshview(mesh_file_loc: str) -> tuple[df.Mesh, df.Mesh, df.Mesh]:
 
     mesh = df.Mesh()
     with df.XDMFFile(mesh_file_loc + "/mesh_triangles.xdmf") as infile:
@@ -65,7 +65,7 @@ def load_mesh_submesh(mesh_file_loc: str) -> df.Mesh:
 from typing import Literal
 def create_meshview_submesh_conversion_array(mesh_file_loc: str, element: Literal["CG2", "CG1"]) -> np.ndarray[int]:
 
-    _, mesh_mv, _ = load_mesh(mesh_file_loc)
+    _, mesh_mv, _ = load_mesh_meshview(mesh_file_loc)
     mesh_sm = load_mesh_submesh(mesh_file_loc)
 
     if element == "CG2":
