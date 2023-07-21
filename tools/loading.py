@@ -1,7 +1,7 @@
 import numpy as np
 import dolfin as df
 import fem_nets
-import torch
+
 
 def load_mesh(mesh_file_loc: str) -> tuple[df.Mesh, df.Mesh, df.Mesh]:
 
@@ -39,23 +39,62 @@ def load_mesh_submesh(mesh_file_loc: str) -> df.Mesh:
 
 
     from dolfin import MeshValueCollection
-    mvc = MeshValueCollection("size_t", mesh, 2)
+    # mvc = MeshValueCollection("size_t", mesh, 2)
     mvc2 = MeshValueCollection("size_t", mesh, 2)
     
-    with df.XDMFFile(mesh_file_loc + "/facet_mesh.xdmf") as infile:
-        infile.read(mvc, "name_to_read")
+    # with df.XDMFFile(mesh_file_loc + "/facet_mesh.xdmf") as infile:
+    #     infile.read(mvc, "name_to_read")
     with df.XDMFFile(mesh_file_loc + "/mesh_triangles.xdmf") as infile:
         infile.read(mvc2, "name_to_read")
 
     from dolfin import cpp
-    boundaries = cpp.mesh.MeshFunctionSizet(mesh, mvc)
+    # boundaries = cpp.mesh.MeshFunctionSizet(mesh, mvc)
     domains = cpp.mesh.MeshFunctionSizet(mesh,mvc2)
 
+
     params = np.load(mesh_file_loc + "/params.npy", allow_pickle='TRUE').item()
+    # Fluid domain is tagged 7
+    # Solid domain is tagged 8
 
 
+    submesh = df.SubMesh(mesh, domains, params["fluid"])
 
-    return
+    return submesh
+
+
+from typing import Literal
+def create_meshview_submesh_conversion_array(mesh_file_loc: str, element: Literal["CG2", "CG1"]) -> np.ndarray[int]:
+
+    _, mesh_mv, _ = load_mesh(mesh_file_loc)
+    mesh_sm = load_mesh_submesh(mesh_file_loc)
+
+    if element == "CG2":
+        V_mv = df.VectorFunctionSpace(mesh_mv, "CG", 2, 2)
+        V_sm = df.VectorFunctionSpace(mesh_sm, "CG", 2, 2)
+    elif element == "CG1":
+        V_mv = df.VectorFunctionSpace(mesh_mv, "CG", 1, 2)
+        V_sm = df.VectorFunctionSpace(mesh_sm, "CG", 1, 2)
+    else:
+        raise ValueError("Element not supported")
+    
+    ordering_f_mv = df.Function(V_mv)
+    ordering_f_mv.interpolate(df.Constant((1.0, -1.0)))
+    new_dofs = np.copy(ordering_f_mv.vector().get_local())
+    new_dofs[::2] *= np.arange(new_dofs.shape[0] // 2)
+    new_dofs[1::2] *= np.arange(new_dofs.shape[0] // 2)
+    ordering_f_mv.vector().set_local(new_dofs)
+
+    ordering_f_sm = df.Function(V_sm)
+    ordering_f_sm.interpolate(ordering_f_mv)
+
+    inds_float = ordering_f_sm.vector().get_local()[::2]
+    inds = np.rint(inds_float).astype(int)
+
+    xy_inds = np.zeros((inds.shape[0]*2,), dtype=int)
+    xy_inds[::2] = 2*inds
+    xy_inds[1::2] = 2*inds+1
+    
+    return xy_inds
 
 
 def load_harmonic_data(harmonic_file_loc: str, u: df.Function, checkpoint: int = 0) -> df.Function:
