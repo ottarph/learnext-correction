@@ -1,10 +1,10 @@
 from problems.run_masknet import *
 
-from conf import mesh_file_loc, biharmonic_file_loc, vandermonde_loc
+from conf import mesh_file_loc, with_submesh, biharmonic_file_loc, vandermonde_loc
 
 torch.manual_seed(0)
 
-total_mesh, fluid_mesh, solid_mesh = load_mesh_meshview(mesh_file_loc)
+fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
 V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
 u_bih = df.Function(V)

@@ -94,7 +94,7 @@ def convert_checkpoints_to_npy_clement_grad(checkpoints: Iterable[int], prefix: 
         Clement interpolant of the gradient.
     """
     
-    from tools.loading import load_meshview
+    from tools.loading import load_mesh_meshview
     from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc, harmonic_label, biharmonic_label
 
     _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
@@ -152,10 +152,10 @@ def convert_checkpoints_to_npy_clement_grad_hess(checkpoints: Iterable[int], pre
         results in about 1 gigabyte data.
     """
     
-    from tools.loading import load_mesh
+    from tools.loading import load_mesh_meshview
     from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc, harmonic_label, biharmonic_label
 
-    _, fluid_mesh, _ = load_mesh(mesh_file_loc)
+    _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
 
     V_cg2 = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     harmonic_cg2 = df.Function(V_cg2)

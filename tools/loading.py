@@ -3,6 +3,14 @@ import dolfin as df
 import fem_nets
 
 
+def load_mesh(mesh_file_loc: str, with_submesh: bool = False):
+    if with_submesh:
+        mesh = load_mesh_submesh(mesh_file_loc)
+    else:
+        _, mesh, _ = load_mesh_meshview(mesh_file_loc)
+    return mesh
+
+
 def load_mesh_meshview(mesh_file_loc: str) -> tuple[df.Mesh, df.Mesh, df.Mesh]:
 
     mesh = df.Mesh()

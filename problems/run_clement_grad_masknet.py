@@ -17,11 +17,11 @@ def main():
     torch.set_default_dtype(torch.float32)
     
     from timeit import default_timer as timer
-    from conf import mesh_file_loc
+    from conf import mesh_file_loc, with_submesh
 
     torch.manual_seed(0)
 
-    _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
+    fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
 

@@ -45,11 +45,11 @@ def main():
     torch.set_default_dtype(torch.float64)
     
     from timeit import default_timer as timer
-    from conf import mesh_file_loc, biharmonic_file_loc, vandermonde_loc
+    from conf import mesh_file_loc, with_submesh, biharmonic_file_loc, vandermonde_loc
 
     torch.manual_seed(0)
 
-    _, fluid_mesh, _ = load_mesh_meshview(mesh_file_loc)
+    fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
     V = df.VectorFunctionSpace(fluid_mesh, "CG", 2, 2)
     u_bih = df.Function(V)
