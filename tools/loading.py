@@ -3,7 +3,7 @@ import dolfin as df
 import fem_nets
 import torch
 
-def load_mesh(mesh_file_loc: str):
+def load_mesh(mesh_file_loc: str) -> tuple[df.Mesh, df.Mesh, df.Mesh]:
 
     mesh = df.Mesh()
     with df.XDMFFile(mesh_file_loc + "/mesh_triangles.xdmf") as infile:
@@ -31,7 +31,34 @@ def load_mesh(mesh_file_loc: str):
     return mesh, fluid_domain, solid_domain
 
 
-def load_harmonic_data(harmonic_file_loc: str, u: df.Function, checkpoint: int = 0):
+def load_mesh_submesh(mesh_file_loc: str) -> df.Mesh:
+
+    mesh = df.Mesh()
+    with df.XDMFFile(mesh_file_loc + "/mesh_triangles.xdmf") as infile:
+        infile.read(mesh)
+
+
+    from dolfin import MeshValueCollection
+    mvc = MeshValueCollection("size_t", mesh, 2)
+    mvc2 = MeshValueCollection("size_t", mesh, 2)
+    
+    with df.XDMFFile(mesh_file_loc + "/facet_mesh.xdmf") as infile:
+        infile.read(mvc, "name_to_read")
+    with df.XDMFFile(mesh_file_loc + "/mesh_triangles.xdmf") as infile:
+        infile.read(mvc2, "name_to_read")
+
+    from dolfin import cpp
+    boundaries = cpp.mesh.MeshFunctionSizet(mesh, mvc)
+    domains = cpp.mesh.MeshFunctionSizet(mesh,mvc2)
+
+    params = np.load(mesh_file_loc + "/params.npy", allow_pickle='TRUE').item()
+
+
+
+    return
+
+
+def load_harmonic_data(harmonic_file_loc: str, u: df.Function, checkpoint: int = 0) -> df.Function:
     from conf import harmonic_label
 
     # Check u is a vector function, to avoid silent seg-fault. Looks horrible but might work for CG-spaces
@@ -43,7 +70,7 @@ def load_harmonic_data(harmonic_file_loc: str, u: df.Function, checkpoint: int =
 
     return u
 
-def load_biharmonic_data(biharmonic_file_loc: str, u: df.Function, checkpoint: int = 0):
+def load_biharmonic_data(biharmonic_file_loc: str, u: df.Function, checkpoint: int = 0) -> df.Function:
     from conf import biharmonic_label
 
     # Check u is a vector function, to avoid silent seg-fault. Looks horrible but might work for CG-spaces
