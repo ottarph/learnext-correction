@@ -93,6 +93,10 @@ def main():
 
     context = Context(mask_net, cost_function, optimizer)
 
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
+    scheduler = None
+
     print(context)
 
     def callback(context: Context) -> None:
@@ -104,7 +108,7 @@ def main():
 
     start = timer()
 
-    train_with_dataloader(context, dataloader, num_epochs, callback=callback)
+    train_with_dataloader(context, dataloader, num_epochs, scheduler=scheduler, callback=callback)
 
     end = timer()
 

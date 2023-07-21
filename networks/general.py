@@ -171,6 +171,7 @@ def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callb
 
 
 def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: int,
+                          scheduler: Callable[[torch.Tensor | None], None] | None = None,
                           callback: Callable[[Context], None] | None = None):
 
     network = context.network
@@ -199,6 +200,13 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
 
         context.epoch += 1
         context.train_hist.append(epoch_loss)
+
+        if scheduler is not None:
+            try:
+                scheduler.step()
+            except:
+                scheduler.step(loss)
+
 
         epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {epoch_loss:.2e}")
 

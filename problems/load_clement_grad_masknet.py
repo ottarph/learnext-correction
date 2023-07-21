@@ -69,10 +69,13 @@ optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") #
 
 
 context = Context(mask_net, cost_function, optimizer)
+
+# loadpref = "mse_lbfgs_8_128_2_clm_grad"
+loadpref = "mse_adam_8_128_2_clm_grad"
 # context.load("models/LBFGS_8_128_2_clm")
 # context.load("models/new_mask_LBFGS_8_128_2_clm_grad")
 # context.load("models/mask_ex_LBFGS_8_128_2_clm")
-context.load("models/MAE_LBFGS_8_128_2_clm_grad")
+context.load(f"models/{loadpref}")
 
 
 # print(x.shape)
@@ -96,20 +99,31 @@ u_diff.vector().set_local(new_dofs)
 # outfile = df.File("fenics_output/clem_masknet_LBFGS.pvd")
 # outfile << u_diff
 
+print()
+print(loadpref)
+print()
 
-
-print(torch.mean(torch.linalg.norm(y-x[...,:2], ord=1, dim=-1)))
-print(torch.mean(torch.linalg.norm(mask_net.network(x), ord=1, dim=-1)))
-print(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=1, dim=-1)))
-print(torch.mean(torch.linalg.norm(y - mask_net(x), ord=1, dim=-1)))
+print("MAE")
+print("biharm - harm:", torch.mean(torch.linalg.norm(y-x[...,:2], ord=1, dim=-1)))
+# print(torch.mean(torch.linalg.norm(mask_net.network(x), ord=1, dim=-1)))
+# print(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=1, dim=-1)))
+print("biharm - pred:", torch.mean(torch.linalg.norm(y - mask_net(x), ord=1, dim=-1)))
 #MAE
 print()
 
-print(torch.sqrt(torch.mean(torch.linalg.norm(y - x[...,:2], ord=2, dim=-1)**2)))
-print(torch.sqrt(torch.mean(torch.linalg.norm(mask_net.network(x), ord=2, dim=-1)**2)))
-print(torch.sqrt(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=2, dim=-1)**2)))
-print(torch.sqrt(torch.mean(torch.linalg.norm(y - mask_net(x), ord=2, dim=-1)**2)))
-#RMSE
+print("RMSE:")
+print("biharm - harm:", torch.sqrt(torch.mean(torch.linalg.norm(y - x[...,:2], ord=2, dim=-1)**2)))
+# print(torch.sqrt(torch.mean(torch.linalg.norm(mask_net.network(x), ord=2, dim=-1)**2)))
+# print(torch.sqrt(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=2, dim=-1)**2)))
+print("biharm - pred:", torch.sqrt(torch.mean(torch.linalg.norm(y - mask_net(x), ord=2, dim=-1)**2)))
+print()
+
+print("MRSE:")
+print("biharm - harm:", torch.mean(torch.linalg.norm(y - x[...,:2], ord=2, dim=-1)))
+# print(torch.mean(torch.linalg.norm(mask_net.network(x), ord=2, dim=-1)))
+# print(torch.mean(torch.linalg.norm(mask_net.network(x)*mask_net.mask(x)[...,None], ord=2, dim=-1)))
+print("biharm - pred:", torch.mean(torch.linalg.norm(y - mask_net(x), ord=2, dim=-1)))
+
 
 
 # print(torch.linalg.norm(y - x[...,:2], dim=-1).shape)

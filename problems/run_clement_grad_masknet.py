@@ -60,7 +60,7 @@ def main():
     
     
     # batch_size = 16
-    batch_size = 128
+    batch_size = 1024
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -88,6 +88,8 @@ def main():
 
     context = Context(mask_net, cost_function, optimizer)
 
+    scheduler = None
+
     print(context)
 
     def callback(context: Context) -> None:
@@ -100,7 +102,7 @@ def main():
 
     start = timer()
 
-    train_with_dataloader(context, dataloader, num_epochs, callback=callback)
+    train_with_dataloader(context, dataloader, num_epochs, scheduler=scheduler, callback=callback)
 
     end = timer()
 
@@ -110,13 +112,17 @@ def main():
 
     print(context.train_hist)
 
-    # context.save("models/MAE_LBFGS_8_128_2_clm_grad")
+    # save_pref = "mse_lbfgs_8_128_2_clm_grad"
+    save_pref = "mse_adam_8_128_2_clm_grad"
+
+    context.save(f"models/{save_pref}")
+    
 
 
-    # plt.figure()
-    # # plt.plot(range(context.epoch), context.train_hist, 'k-')
-    # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    # plt.savefig("foo/clm/MAE_LBFGS_8_128_2_clm_grad_train_hist.png", dpi=150)
+    plt.figure()
+    # plt.plot(range(context.epoch), context.train_hist, 'k-')
+    plt.semilogy(range(context.epoch), context.train_hist, 'k-')
+    plt.savefig(f"foo/clm/{save_pref}_train_hist.png", dpi=150)
 
 
     return
