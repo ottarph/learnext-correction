@@ -98,11 +98,13 @@ def create_meshview_submesh_conversion_array(mesh_file_loc: str, element: Litera
     inds_float = ordering_f_sm.vector().get_local()[::2]
     inds = np.rint(inds_float).astype(int)
 
-    xy_inds = np.zeros((inds.shape[0]*2,), dtype=int)
-    xy_inds[::2] = 2*inds
-    xy_inds[1::2] = 2*inds+1
+    # xy_inds = np.zeros((inds.shape[0]*2,), dtype=int)
+    # xy_inds[::2] = 2*inds
+    # xy_inds[1::2] = 2*inds+1
     
-    return xy_inds
+    # return xy_inds
+
+    return inds
 
 
 def load_harmonic_data(harmonic_file_loc: str, u: df.Function, checkpoint: int = 0) -> df.Function:

@@ -47,7 +47,12 @@ def test_create_meshview_submesh_conversion_array():
 
     inds = create_meshview_submesh_conversion_array(mesh_file_loc, "CG2")
 
-    u_sm.vector().set_local(u_mv.vector().get_local()[inds])
+    assert inds.shape[0] == V_mv.tabulate_dof_coordinates().shape[0] // 2
+
+    new_dofs = np.zeros_like(u_mv.vector().get_local())
+    new_dofs[::2] = u_mv.vector().get_local()[::2][inds]
+    new_dofs[1::2] = u_mv.vector().get_local()[1::2][inds]
+    u_sm.vector().set_local(np.copy(new_dofs))
 
     assert df.errornorm(u_mv, u_sm) < 1e-15
 
@@ -60,7 +65,12 @@ def test_create_meshview_submesh_conversion_array():
     u_mv_cg1.interpolate(u_mv)
 
     inds_cg1 = create_meshview_submesh_conversion_array(mesh_file_loc, "CG1")
-    u_sm_cg1.vector().set_local(u_mv_cg1.vector().get_local()[inds_cg1])
+    assert inds_cg1.shape[0] == V_mv_cg1.tabulate_dof_coordinates().shape[0] // 2
+
+    new_dofs = np.zeros_like(u_mv_cg1.vector().get_local())
+    new_dofs[::2] = u_mv_cg1.vector().get_local()[::2][inds_cg1]
+    new_dofs[1::2] = u_mv_cg1.vector().get_local()[1::2][inds_cg1]
+    u_sm_cg1.vector().set_local(np.copy(new_dofs))
 
     assert df.errornorm(u_mv_cg1, u_sm_cg1) < 1e-15
 
@@ -83,7 +93,10 @@ def visualize_meshview_submesh_conversion_array():
 
     inds = create_meshview_submesh_conversion_array(mesh_file_loc, "CG2")
 
-    u_sm.vector().set_local(u_mv.vector().get_local()[inds])
+    new_dofs = np.zeros_like(u_mv.vector().get_local())
+    new_dofs[::2] = u_mv.vector().get_local()[::2][inds]
+    new_dofs[1::2] = u_mv.vector().get_local()[1::2][inds]
+    u_sm.vector().set_local(np.copy(new_dofs))
 
     file_mv = df.File("fenics_output/meshview_load.pvd")
     file_mv << u_mv
