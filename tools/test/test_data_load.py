@@ -5,8 +5,10 @@ import dolfin as df
 from tools.loading import *
 from tools.plots import fenics_to_scatter_moved
 
-def test_load_data():
+import pytest
 
+def test_load_data():
+    pytest.importorskip("dolfin.MeshView")
     from conf import mesh_file_loc, harmonic_file_loc, biharmonic_file_loc
 
     _, mesh, _ = load_mesh_meshview(mesh_file_loc)

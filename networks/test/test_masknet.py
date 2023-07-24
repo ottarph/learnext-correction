@@ -1,8 +1,10 @@
 
 from networks.masknet import *
 from networks.general import MLP
+import pytest
 
 def test_femnet_masknet():
+    pytest.importorskip("dolfin.MeshView")
 
     torch.set_default_dtype(torch.float64)
 
@@ -49,6 +51,8 @@ def test_femnet_masknet():
 
     
 def test_tensor_masknet():
+    pytest.importorskip("dolfin.MeshView")
+    
     torch.set_default_dtype(torch.float64)
 
     import dolfin as df

@@ -4,7 +4,10 @@ import dolfin as df
 from tools.loading import *
 from conf import mesh_file_loc, biharmonic_file_loc, biharmonic_label
 
+import pytest
+
 def test_mesh_load_meshview():
+    pytest.importorskip("dolfin.MeshView")
 
     _, mesh_mv, _ = load_mesh_meshview(mesh_file_loc)
     assert mesh_mv.num_vertices() == 3935
@@ -31,6 +34,7 @@ def test_mesh_load_submesh():
     return
 
 def test_create_meshview_submesh_conversion_array():
+    pytest.importorskip("dolfin.MeshView")
 
     _, mesh_mv, _ = load_mesh_meshview(mesh_file_loc)
     mesh_sm = load_mesh_submesh(mesh_file_loc)
