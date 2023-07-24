@@ -103,11 +103,13 @@ class PrependModule(nn.Module):
 
 class Context:
 
-    def __init__(self, network: nn.Module, cost_function: Callable, optimizer: torch.optim.Optimizer):
+    def __init__(self, network: nn.Module, cost_function: Callable, optimizer: torch.optim.Optimizer,
+                 scheduler: Callable[[torch.Tensor | None], None] | None = None):
 
         self.network = network
         self.cost_function = cost_function
         self.optimizer = optimizer
+        self.scheduler = scheduler
 
         self.epoch: int = 0
         self.train_hist: list[float] = []
@@ -117,7 +119,8 @@ class Context:
     
     def __repr__(self) -> str:
 
-        return f"{self.network} \n{self.cost_function} \n{self.optimizer}"
+        return f"Network: {self.network} \nCost function: {self.cost_function}" + \
+               f"\nOptimizer: {self.optimizer} \nScheduler: {self.scheduler}"
     
     def save(self, fname: str) -> None:
 
@@ -171,12 +174,12 @@ def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callb
 
 
 def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: int,
-                          scheduler: Callable[[torch.Tensor | None], None] | None = None,
                           callback: Callable[[Context], None] | None = None):
 
     network = context.network
     cost_function = context.cost_function
     optimizer = context.optimizer
+    scheduler = context.scheduler
 
     from tqdm import tqdm
 

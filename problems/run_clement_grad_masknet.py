@@ -92,10 +92,10 @@ def main():
     optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
     # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
 
-
-    context = Context(mask_net, cost_function, optimizer)
-
     scheduler = None
+    
+    context = Context(mask_net, cost_function, optimizer, scheduler)
+
 
     print(context)
 
@@ -109,7 +109,7 @@ def main():
 
     start = timer()
 
-    train_with_dataloader(context, dataloader, num_epochs, scheduler=scheduler, callback=callback)
+    train_with_dataloader(context, dataloader, num_epochs, callback=callback)
 
     end = timer()
 
