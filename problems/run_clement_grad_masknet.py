@@ -52,15 +52,22 @@ def main():
 
     mask_net = MaskNet(network, base, mask)
 
+    from data_prep.transforms import DofPermutationTransform
+    from conf import submesh_conversion_cg1_loc
+    perm_tens = torch.LongTensor(np.load(submesh_conversion_cg1_loc))
+    dof_perm_transform = DofPermutationTransform(perm_tens, dim=-2)
+    transform = dof_perm_transform if with_submesh else None
+    print(f"{with_submesh=}")
 
     from data_prep.clement.dataset import learnextClementGradDataset
     from conf import train_checkpoints
     prefix = "data_prep/clement/data_store/grad/clm_grad"
-    dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints)
+    dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints,
+                                         transform=transform, target_transform=transform)
     
     
     # batch_size = 16
-    batch_size = 1024
+    batch_size = 256
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -98,7 +105,7 @@ def main():
     callback = None
 
     # num_epochs = 10
-    num_epochs = 20
+    num_epochs = 3
 
     start = timer()
 
@@ -115,14 +122,14 @@ def main():
     # save_pref = "mse_lbfgs_8_128_2_clm_grad"
     save_pref = "mse_adam_8_128_2_clm_grad"
 
-    context.save(f"models/{save_pref}")
+    # context.save(f"models/{save_pref}")
     
 
 
-    plt.figure()
-    # plt.plot(range(context.epoch), context.train_hist, 'k-')
-    plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    plt.savefig(f"foo/clm/{save_pref}_train_hist.png", dpi=150)
+    # plt.figure()
+    # # plt.plot(range(context.epoch), context.train_hist, 'k-')
+    # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
+    # plt.savefig(f"foo/clm/{save_pref}_train_hist.png", dpi=150)
 
 
     return

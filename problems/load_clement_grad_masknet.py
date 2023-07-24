@@ -36,11 +36,18 @@ network = nn.Sequential(prepend, mlp)
 
 mask_net = MaskNet(network, base, mask)
 
+from data_prep.transforms import DofPermutationTransform
+from conf import submesh_conversion_cg1_loc
+perm_tens = torch.LongTensor(np.load(submesh_conversion_cg1_loc))
+dof_perm_transform = DofPermutationTransform(perm_tens, dim=-2)
+transform = dof_perm_transform if with_submesh else None
+print(f"{with_submesh=}")
 
 from data_prep.clement.dataset import learnextClementGradDataset
 from conf import train_checkpoints
 prefix = "data_prep/clement/data_store/grad/clm_grad"
-dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints)
+dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints,
+                                     transform=transform, target_transform=transform)
 
 
 batch_size = 16

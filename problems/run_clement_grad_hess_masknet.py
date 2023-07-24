@@ -56,11 +56,18 @@ def main():
 
     mask_net = MaskNet(network, base, mask)
 
+    from data_prep.transforms import DofPermutationTransform
+    from conf import submesh_conversion_cg1_loc
+    perm_tens = torch.LongTensor(np.load(submesh_conversion_cg1_loc))
+    dof_perm_transform = DofPermutationTransform(perm_tens, dim=-2)
+    transform = dof_perm_transform if with_submesh else None
+    print(f"{with_submesh=}")
 
     from data_prep.clement.dataset import learnextClementGradHessDataset
     from conf import train_checkpoints
     prefix = "data_prep/clement/data_store/grad_hess/clm_grad_hess"
-    dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=train_checkpoints)
+    dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=train_checkpoints,
+                                             transform=transform, target_transform=transform)
     
     
     batch_size = 128
@@ -104,7 +111,7 @@ def main():
         return
     callback = None
 
-    num_epochs = 20
+    num_epochs = 3
 
     start = timer()
 

@@ -14,7 +14,7 @@ test_checkpoints = range(1800, 2400+1) # Specify which checkpoints are to be reg
 
 poisson_mask_f = "2.0 * (x[0]+1.0) * (1-x[0]) * exp( -3.5*pow(x[0], 7) ) + 0.1"
 
-with_submesh = False
+with_submesh = True
 submesh_conversion_loc = "tools/conversion_arrays/"
 submesh_conversion_cg1_loc = submesh_conversion_loc + "mv_to_sm_cg1.npy"
 submesh_conversion_cg2_loc = submesh_conversion_loc + "mv_to_sm_cg2.npy"
