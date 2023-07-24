@@ -15,7 +15,8 @@ from networks.general import *
 def main():
     # torch.set_default_dtype(torch.float64)
     torch.set_default_dtype(torch.float32)
-    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     from timeit import default_timer as timer
     from conf import mesh_file_loc, with_submesh
 
@@ -51,6 +52,7 @@ def main():
 
 
     mask_net = MaskNet(network, base, mask)
+    mask_net.to(device)
 
     from data_prep.transforms import DofPermutationTransform
     from conf import submesh_conversion_cg1_loc
@@ -67,11 +69,12 @@ def main():
     
     
     # batch_size = 16
-    batch_size = 256
+    batch_size = 512
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
     x, y = next(iter(dataloader))
+    x, y = x.to(device), y.to(device)
     assert x.shape == (batch_size, fluid_mesh.num_vertices(), 6)
     # In:  (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y), where u is from harmonic extension
     assert y.shape == (batch_size, fluid_mesh.num_vertices(), 2)
@@ -89,31 +92,24 @@ def main():
     cost_function = nn.MSELoss()
     # cost_function = nn.L1Loss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
-    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16
+    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU
+    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU
 
     scheduler = None
-    
-    context = Context(mask_net, cost_function, optimizer, scheduler)
 
+    context = Context(mask_net, cost_function, optimizer, scheduler)
 
     print(context)
 
-    def callback(context: Context) -> None:
-        print(f"epoch #{context.epoch-1:03}, loss = {context.train_hist[-1]:.2e}")
-        return
-    callback = None
-
-    # num_epochs = 10
-    num_epochs = 3
+    num_epochs = 10
 
     start = timer()
 
-    train_with_dataloader(context, dataloader, num_epochs, callback=callback)
+    train_with_dataloader(context, dataloader, num_epochs, device)
 
     end = timer()
 
-    # print(f"{batch_size=}")
+    print(f"{batch_size=}")
     # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
 

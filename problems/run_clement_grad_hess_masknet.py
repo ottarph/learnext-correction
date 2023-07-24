@@ -15,6 +15,7 @@ from networks.general import *
 def main():
     # torch.set_default_dtype(torch.float64)
     torch.set_default_dtype(torch.float32)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     
     from timeit import default_timer as timer
     from conf import mesh_file_loc, with_submesh
@@ -55,13 +56,14 @@ def main():
 
 
     mask_net = MaskNet(network, base, mask)
+    mask_net.to(device)
 
     from data_prep.transforms import DofPermutationTransform
     from conf import submesh_conversion_cg1_loc
     perm_tens = torch.LongTensor(np.load(submesh_conversion_cg1_loc))
     dof_perm_transform = DofPermutationTransform(perm_tens, dim=-2)
     transform = dof_perm_transform if with_submesh else None
-    print(f"{with_submesh=}")
+    print(f"{with_submesh = }")
 
     from data_prep.clement.dataset import learnextClementGradHessDataset
     from conf import train_checkpoints
@@ -70,11 +72,12 @@ def main():
                                              transform=transform, target_transform=transform)
     
     
-    batch_size = 128
+    batch_size = 256
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
     x, y = next(iter(dataloader))
+    x, y = x.to(device), y.to(device)
     assert x.shape == (batch_size, fluid_mesh.num_vertices(), 14)
     # In:   (u_x, u_y, d_x u_x,  d_y u_x,  d_x u_y,  d_y u_y,
     #                 d_xx u_x, d_xy u_x, d_yx u_x, d_yy u_x,
@@ -94,8 +97,8 @@ def main():
 
     cost_function = nn.MSELoss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 1024?
-    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 16?
+    # optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU
+    optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU
 
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
@@ -103,23 +106,18 @@ def main():
 
     context = Context(mask_net, cost_function, optimizer, scheduler)
 
-
     print(context)
 
-    def callback(context: Context) -> None:
-        print(f"epoch #{context.epoch-1:03}, loss = {context.train_hist[-1]:.2e}")
-        return
-    callback = None
 
-    num_epochs = 3
+    num_epochs = 10
 
     start = timer()
 
-    train_with_dataloader(context, dataloader, num_epochs, callback=callback)
+    train_with_dataloader(context, dataloader, num_epochs, device)
 
     end = timer()
 
-    # print(f"{batch_size=}")
+    print(f"{batch_size=}")
     # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
     print(context.train_hist)

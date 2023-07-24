@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Literal
 
 
 class MLP(nn.Module):
@@ -38,7 +38,7 @@ class TensorModule(nn.Module):
     def __init__(self, x: torch.Tensor):
         super().__init__()
 
-        self.x = x.detach().clone()
+        self.x = nn.Parameter(x.detach().clone())
         self.x.requires_grad_(False)
 
         return
@@ -84,7 +84,8 @@ class PrependModule(nn.Module):
         """
         super().__init__()
 
-        self.prepend_tensor = prepend_tensor
+        self.prepend_tensor = nn.Parameter(prepend_tensor.detach().clone())
+        self.prepend_tensor.requires_grad_(False)
 
         return
     
@@ -174,6 +175,7 @@ def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callb
 
 
 def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: int,
+                          device: Literal["cuda", "cpu"],
                           callback: Callable[[Context], None] | None = None):
 
     network = context.network
@@ -189,6 +191,7 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
 
         dataloader_loop = tqdm(dataloader, desc="Mini-batch #000", position=1, leave=False)
         for mb, (x, y) in enumerate(dataloader_loop, start=1):
+            x, y = x.to(device), y.to(device)
 
             def closure():
                 optimizer.zero_grad()
