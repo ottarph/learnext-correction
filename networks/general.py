@@ -114,6 +114,7 @@ class Context:
 
         self.epoch: int = 0
         self.train_hist: list[float] = []
+        self.lr_hist: list[float] = []
         self.test_hist: dict[int, float] = {}
 
         return
@@ -183,9 +184,11 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
     optimizer = context.optimizer
     scheduler = context.scheduler
 
+    lr = optimizer.param_groups[0]["lr"]
+
     from tqdm import tqdm
 
-    epoch_loop = tqdm(range(1, num_epochs+1), position=0, desc="Epoch #000, loss = ???    ")
+    epoch_loop = tqdm(range(1, num_epochs+1), position=0, desc=f"Epoch #000, loss =  ???   , lr = {lr:.1e}")
     for epoch in epoch_loop:
         epoch_loss = 0.0
 
@@ -206,6 +209,7 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
 
         context.epoch += 1
         context.train_hist.append(epoch_loss)
+        context.lr_hist.append(optimizer.param_groups[0]["lr"])
 
         if scheduler is not None:
             try:
@@ -214,7 +218,7 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
                 scheduler.step(loss)
 
 
-        epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {epoch_loss:.2e}")
+        epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {epoch_loss:.2e}, lr = {lr:.1e}")
 
         if callback is not None:
             callback(context)

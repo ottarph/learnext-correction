@@ -40,7 +40,7 @@ def main():
     # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
     widths = [8, 128, 2]
-    # widths = [8, 32, 2]
+    # widths = [8, 512, 2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
@@ -59,7 +59,7 @@ def main():
     perm_tens = torch.LongTensor(np.load(submesh_conversion_cg1_loc))
     dof_perm_transform = DofPermutationTransform(perm_tens, dim=-2)
     transform = dof_perm_transform if with_submesh else None
-    print(f"{with_submesh=}")
+    print(f"{with_submesh = }")
 
     from data_prep.clement.dataset import learnextClementGradDataset
     from conf import train_checkpoints
@@ -69,7 +69,7 @@ def main():
     
     
     # batch_size = 16
-    batch_size = 512
+    batch_size = 64
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
@@ -91,17 +91,20 @@ def main():
 
     cost_function = nn.MSELoss()
     # cost_function = nn.L1Loss()
-    # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
-    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU
-    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU
+    # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-2)
+    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU with [8, 128, 2]
+    # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU with [8, 128, 2]
+
+    # optimizer = torch.optim.Adam(mlp.parameters(), weight_decay=1e-4) # Need to wait until I have test metrics for this
 
     scheduler = None
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
 
     context = Context(mask_net, cost_function, optimizer, scheduler)
 
     print(context)
 
-    num_epochs = 10
+    num_epochs = 20
 
     start = timer()
 
@@ -123,10 +126,13 @@ def main():
 
 
     # plt.figure()
-    # # plt.plot(range(context.epoch), context.train_hist, 'k-')
+    # plt.plot(range(context.epoch), context.train_hist, 'k-')
     # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
     # plt.savefig(f"foo/clm/{save_pref}_train_hist.png", dpi=150)
 
+    # plt.figure()
+    # plt.semilogy(range(context.epoch), context.lr_hist, 'k-')
+    # plt.savefig(f"foo/clm/{save_pref}_lr_hist.png", dpi=150)
 
     return
 

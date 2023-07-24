@@ -100,8 +100,8 @@ def main():
     # optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU
     optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU
 
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     scheduler = None
 
     context = Context(mask_net, cost_function, optimizer, scheduler)
