@@ -5,23 +5,23 @@ import torch.nn as nn
 
 from torch.utils.data import DataLoader
 
-from tools.loading import *
-from tools.plots import *
-
-from networks.masknet import *
-from networks.general import *
+from networks.masknet import MaskNet
+from networks.general import MLP, TensorModule, TrimModule, PrependModule, \
+                             Context, train_with_dataloader
 
 
 def main():
     # torch.set_default_dtype(torch.float64)
     torch.set_default_dtype(torch.float32)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"{device = }")
     
     from timeit import default_timer as timer
     from conf import mesh_file_loc, with_submesh
 
     torch.manual_seed(0)
 
+    from tools.loading import load_mesh
     fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh

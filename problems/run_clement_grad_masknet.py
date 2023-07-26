@@ -5,11 +5,10 @@ import torch.nn as nn
 
 from torch.utils.data import DataLoader
 
-from tools.loading import *
-from tools.plots import *
 
-from networks.masknet import *
-from networks.general import *
+from networks.masknet import MaskNet
+from networks.general import MLP, TensorModule, TrimModule, PrependModule, \
+                             Context, train_with_dataloader
 
 
 def main():
@@ -22,11 +21,12 @@ def main():
 
     torch.manual_seed(0)
 
+    from tools.loading import load_mesh
     fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
 
-    # mask_df = poisson_mask(V_scal, normalize = True)
+
     from conf import poisson_mask_f
     from networks.masknet import poisson_mask_custom
     mask_df = poisson_mask_custom(V_scal, poisson_mask_f, normalize = True)
@@ -44,8 +44,8 @@ def main():
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
-    dof_coordinates = V_scal.tabulate_dof_coordinates()
-    prepend = PrependModule(torch.tensor(dof_coordinates, dtype=torch.get_default_dtype()))
+    dof_coordinates = torch.tensor(V_scal.tabulate_dof_coordinates(), dtype=torch.get_default_dtype())
+    prepend = PrependModule(dof_coordinates)
     # Prepend inserts (x, y) to beginning of (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
     # to make correct input of MLP.
     network = nn.Sequential(prepend, mlp)
@@ -104,7 +104,7 @@ def main():
 
     print(context)
 
-    num_epochs = 20
+    num_epochs = 5
 
     start = timer()
 
