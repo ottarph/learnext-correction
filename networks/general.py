@@ -105,24 +105,55 @@ class PrependModule(nn.Module):
 class Context:
 
     def __init__(self, network: nn.Module, cost_function: Callable, optimizer: torch.optim.Optimizer,
-                 scheduler: Callable[[torch.Tensor | None], None] | None = None):
+                 scheduler: Callable[[torch.Tensor | None], None] | None = None,
+                 validation_cost_function: Callable[[torch.Tensor], torch.Tensor] | None = None):
 
         self.network = network
         self.cost_function = cost_function
         self.optimizer = optimizer
         self.scheduler = scheduler
+        if validation_cost_function is None:
+            validation_cost_function = cost_function
+        self.validation_cost_function = validation_cost_function
+
 
         self.epoch: int = 0
         self.train_hist: list[float] = []
         self.lr_hist: list[float] = []
         self.test_hist: dict[int, float] = {}
+        self.val_hist: list[float] = []
 
         return
     
     def __repr__(self) -> str:
 
         return f"Network: {self.network} \nCost function: {self.cost_function}" + \
-               f"\nOptimizer: {self.optimizer} \nScheduler: {self.scheduler}"
+               f"\nValidation Cost function: {self.validation_cost_function}" + \
+               f"\nOptimizer: {self.optimizer} \nScheduler: {self.scheduler}" + \
+               f"\nFinal train loss: {self.final_train_loss}" + \
+               f"\nFinal val loss: {self.final_val_loss}" + \
+               f"\nFinal lr: {self.final_lr}"
+    
+    @property
+    def final_train_loss(self):
+        if len(self.train_hist) > 0:
+            return self.train_hist[-1]
+        else:
+            return None
+        
+    @property
+    def final_val_loss(self):
+        if len(self.val_hist) > 0:
+            return self.val_hist[-1]
+        else:
+            return None
+        
+    @property
+    def final_lr(self):
+        if len(self.lr_hist) > 0:
+            return self.lr_hist[-1]
+        else:
+            return None
     
     def save(self, fname: str) -> None:
 
@@ -130,9 +161,11 @@ class Context:
         data_test = np.zeros((2, len(self.test_hist.values())))
         data_test[1,:] = np.array(list(self.test_hist.values()))
         data_test[0,:] = np.array(list(self.test_hist.keys()))
+        data_val = np.array(self.val_hist)
 
         np.savetxt(fname+".train.txt", data_train)
         np.savetxt(fname+".test.txt", data_test)
+        np.savetxt(fname+".val.txt", data_val)
 
         torch.save(self.network.state_dict(), fname+".pt")
 
@@ -150,7 +183,27 @@ class Context:
         else:
             self.test_hist = {int(i): l for i, l in zip(data_test[0,:], data_test[1,:])}
 
+        data_val = np.loadtxt(fname+".val.txt")
+        self.val_hist = list(data_val)
+
         self.network.load_state_dict(torch.load(fname+".pt"))
+
+        return
+    
+    def save_results(self, folder_name: str) -> None:
+        import pathlib
+        pathlib.Path(folder_name).mkdir(parents=True, exist_ok=True)
+
+        data_train = np.array(self.train_hist)
+        data_test = np.zeros((2, len(self.test_hist.values())))
+        data_test[1,:] = np.array(list(self.test_hist.values()))
+        data_test[0,:] = np.array(list(self.test_hist.keys()))
+        data_val = np.array(self.val_hist)
+
+        np.savetxt(folder_name+"/train.txt", data_train)
+        if len(self.test_hist.keys()) > 0:
+            np.savetxt(folder_name+"/test.txt", data_test)
+        np.savetxt(folder_name+"/val.txt", data_val)
 
         return
 
@@ -175,14 +228,16 @@ def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callb
     return
 
 
-def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: int,
-                          device: Literal["cuda", "cpu"],
+def train_with_dataloader(context: Context, train_dataloader: DataLoader, 
+                          num_epochs: int, device: Literal["cuda", "cpu"],
+                          val_dataloader: DataLoader | None = None, 
                           callback: Callable[[Context], None] | None = None):
 
     network = context.network
     cost_function = context.cost_function
     optimizer = context.optimizer
     scheduler = context.scheduler
+    validation_cost_function = context.validation_cost_function
 
     lr = optimizer.param_groups[0]["lr"]
 
@@ -192,8 +247,8 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
     for epoch in epoch_loop:
         epoch_loss = 0.0
 
-        dataloader_loop = tqdm(dataloader, desc="Mini-batch #000", position=1, leave=False)
-        for mb, (x, y) in enumerate(dataloader_loop, start=1):
+        train_dataloader_loop = tqdm(train_dataloader, desc="Mini-batch #000", position=1, leave=False)
+        for mb, (x, y) in enumerate(train_dataloader_loop, start=1):
             x, y = x.to(device), y.to(device)
 
             def closure():
@@ -205,20 +260,33 @@ def train_with_dataloader(context: Context, dataloader: DataLoader, num_epochs: 
             loss = optimizer.step(closure)
             epoch_loss += loss.item()
 
-            dataloader_loop.set_description_str(f"Mini-batch #{mb:03}")
+            train_dataloader_loop.set_description_str(f"Mini-batch #{mb:03}")
 
         context.epoch += 1
         context.train_hist.append(epoch_loss)
-        context.lr_hist.append(optimizer.param_groups[0]["lr"])
+        context.lr_hist.append(lr)
+
+        if val_dataloader is not None:
+            val_loss = 0.0
+            val_dataloader_loop = tqdm(val_dataloader, position=1, desc="Running over validaton data set.", leave=False)
+            with torch.no_grad():
+                for x, y in val_dataloader_loop:
+                    x, y = x.to(device), y.to(device)
+                    val_loss += validation_cost_function(network(x), y).item()
+            context.val_hist.append(val_loss)
 
         if scheduler is not None:
             try:
                 scheduler.step()
             except:
-                scheduler.step(loss)
-
-
-        epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {epoch_loss:.2e}, lr = {lr:.1e}")
+                if val_dataloader is not None:
+                    scheduler.step(val_loss)
+                else:
+                    scheduler.step(epoch_loss)
+            lr = optimizer.param_groups[0]["lr"]
+        
+        print_loss = val_loss if val_dataloader is not None else epoch_loss
+        epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {print_loss:.2e}, lr = {lr:.1e}")
 
         if callback is not None:
             callback(context)

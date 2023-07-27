@@ -15,6 +15,7 @@ def main():
     # torch.set_default_dtype(torch.float64)
     torch.set_default_dtype(torch.float32)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"{device = }")
 
     from timeit import default_timer as timer
     from conf import mesh_file_loc, with_submesh
@@ -62,16 +63,19 @@ def main():
     print(f"{with_submesh = }")
 
     from data_prep.clement.dataset import learnextClementGradDataset
-    from conf import train_checkpoints
+    from conf import train_checkpoints, validation_checkpoints
     prefix = "data_prep/clement/data_store/grad/clm_grad"
     dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints,
                                          transform=transform, target_transform=transform)
+    val_dataset = learnextClementGradDataset(prefix=prefix, checkpoints=validation_checkpoints,
+                                             transform=transform, target_transform=transform)
     
     
     # batch_size = 16
-    batch_size = 64
+    batch_size = 256
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
 
     x, y = next(iter(dataloader))
     x, y = x.to(device), y.to(device)
@@ -95,40 +99,74 @@ def main():
     optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU with [8, 128, 2]
     # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU with [8, 128, 2]
 
+    val_cost_function = nn.MSELoss()
+
     # optimizer = torch.optim.Adam(mlp.parameters(), weight_decay=1e-4) # Need to wait until I have test metrics for this
+                                                                        # Weight decay does not show up in cost function loss though.
 
-    scheduler = None
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    # scheduler = None
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2)
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
 
-    context = Context(mask_net, cost_function, optimizer, scheduler)
+    context = Context(mask_net, cost_function, optimizer, scheduler, val_cost_function)
 
-    print(context)
+    print(context, "\n")
 
     num_epochs = 5
 
     start = timer()
 
-    train_with_dataloader(context, dataloader, num_epochs, device)
+    train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
 
     end = timer()
 
-    print(f"{batch_size=}")
+    # print(f"{batch_size=}")
     # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
 
-    print(context.train_hist)
+    # print(context.train_hist)
+    # print(context.val_hist)
 
     # save_pref = "mse_lbfgs_8_128_2_clm_grad"
-    save_pref = "mse_adam_8_128_2_clm_grad"
+    # save_pref = "mse_adam_8_128_2_clm_grad"
 
     # context.save(f"models/{save_pref}")
-    
 
+    run_name = "three"
 
+    results_dir = f"results/clem_grad/{run_name}"
+    context.save_results(results_dir)
+
+    import pathlib
+    pathlib.Path(results_dir+"/context.txt").write_text(str(context))
+
+    import matplotlib.pyplot as plt
     # plt.figure()
-    # plt.plot(range(context.epoch), context.train_hist, 'k-')
     # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    # plt.savefig(f"foo/clm/{save_pref}_train_hist.png", dpi=150)
+    # plt.semilogy(range(context.epoch), context.val_hist, 'k--')
+    # plt.savefig(f"results/clem_grad/two/train_val_hist.png", dpi=150)
+
+    """ Adapted from https://matplotlib.org/stable/gallery/subplots_axes_and_figures/two_scales.html """
+    fig, ax1 = plt.subplots()
+
+    # color = 'tab:red'
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss')#, color=color)
+    ax1.semilogy(range(context.epoch), context.train_hist, 'k-', label="Train")#, color=color)
+    ax1.semilogy(range(context.epoch), context.val_hist, 'r--', label="Val")
+    ax1.tick_params(axis='y')#, labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    # color = 'tab:blue'
+    ax2.set_ylabel('lr')#, color=color)  # we already handled the x-label with ax1
+    ax2.semilogy(range(context.epoch), context.lr_hist, 'b:', alpha=0.8, lw=0.75, label="lr")#, color=color)
+    ax2.tick_params(axis='y')#, labelcolor=color)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    fig.legend()
+
+    plt.savefig(f"{results_dir}/train_val_lr_hist.png", dpi=150)
 
     # plt.figure()
     # plt.semilogy(range(context.epoch), context.lr_hist, 'k-')

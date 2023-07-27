@@ -24,3 +24,5 @@ data_store
 foo/
 
 .pytest_cache/
+
+results/*
