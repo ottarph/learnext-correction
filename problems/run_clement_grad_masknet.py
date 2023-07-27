@@ -36,8 +36,8 @@ def main():
     mask = TensorModule(mask_tensor)
 
 
-    forward_indices = [range(2)]
-    base = TrimModule(forward_indices=forward_indices)
+    indices = torch.LongTensor(range(2))
+    base = TrimModule(indices, dim=-1)
     # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
     widths = [8, 128, 2]

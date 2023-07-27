@@ -38,30 +38,62 @@ def test_trim_module():
     # Testing batch of three twenty-vertex (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y), as in clement grad net.
     x = torch.rand((3, 20, 6))
 
-    forward_indices = [range(20), range(2)]
-    trim_mod = TrimModule(forward_indices=forward_indices)
+    indices = torch.LongTensor([0, 1])
+    dim = -1
+    trim_mod = TrimModule(indices, dim=dim)
     y = trim_mod(x)
     assert torch.equal(y, x[:, :, :2])
 
-    forward_indices = [range(10), range(2)]
-    trim_mod = TrimModule(forward_indices=forward_indices)
+    indices = torch.LongTensor(range(2))
+    dim = -1
+    trim_mod = TrimModule(indices, dim=dim)
     y = trim_mod(x)
+    assert torch.equal(y, x[:, :, :2])
+
+    indices = torch.LongTensor(range(10))
+    dim = -2
+    trim_mod = TrimModule(indices, dim=dim)
+    y = trim_mod(x)
+    assert torch.equal(y, x[:, :10, :])
+
+    inds1 = torch.LongTensor(range(2))
+    inds2 = torch.LongTensor(range(10))
+    trim_mod1 = TrimModule(inds1, dim=-1)
+    trim_mod2 = TrimModule(inds2, dim=-2)
+    trim_mod_stack = nn.Sequential(trim_mod1, trim_mod2)
+    y = trim_mod_stack(x)
     assert torch.equal(y, x[:, :10, :2])
 
-    forward_indices = [range(5, 15), range(1, 3)]
-    trim_mod = TrimModule(forward_indices=forward_indices)
-    y = trim_mod(x)
+    inds1 = torch.LongTensor(range(1, 3))
+    inds2 = torch.LongTensor(range(5, 15))
+    trim_mod1 = TrimModule(inds1, dim=-1)
+    trim_mod2 = TrimModule(inds2, dim=-2)
+    trim_mod_stack = nn.Sequential(trim_mod1, trim_mod2)
+    y = trim_mod_stack(x)
     assert torch.equal(y, x[:, 5:15, 1:3])
 
-    forward_indices = [range(2, 13, 2), range(1, 3)]
-    trim_mod = TrimModule(forward_indices=forward_indices)
-    y = trim_mod(x)
+    inds1 = torch.LongTensor(range(1, 3))
+    inds2 = torch.LongTensor(range(2, 13, 2))
+    trim_mod1 = TrimModule(inds1, dim=-1)
+    trim_mod2 = TrimModule(inds2, dim=-2)
+    trim_mod_stack = nn.Sequential(trim_mod1, trim_mod2)
+    y = trim_mod_stack(x)
     assert torch.equal(y, x[:, 2:13:2, 1:3])
 
-    forward_indices = [range(1, 5, 2)]
-    trim_mod = TrimModule(forward_indices=forward_indices)
+    inds = torch.LongTensor(range(1, 5, 2))
+    trim_mod = TrimModule(inds, dim=-1)
     y = trim_mod(x)
     assert torch.equal(y, x[:, :, 1:5:2])
+
+    if torch.cuda.is_available():
+        device = "cuda"
+        indices = torch.LongTensor([0, 1])
+        dim = -1
+        trim_mod = TrimModule(indices, dim=dim)
+        trim_mod.to(device)
+        x_dev = x.to(device)
+        y_dev = trim_mod(x_dev)
+        assert torch.equal(y_dev, x_dev[:, :, :2])
 
     return
 

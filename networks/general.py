@@ -50,29 +50,23 @@ class TensorModule(nn.Module):
     
     
 class TrimModule(nn.Module):
-
-    def __init__(self, forward_indices: Iterable[range]):
+    
+    def __init__(self, indices: torch.LongTensor, dim: int = -1):
         """
             A module whose `.forward(x)`-call returns `x`, but with the last
-            dimensions selected according to `forward_shape`.
+            dimensions selected according to `indices`.
         """
         super().__init__()
 
-        self.forward_indices = forward_indices
-        if len(forward_indices) == 0:
-            raise ValueError()
-        if len(forward_indices) > 2:
-            raise NotImplementedError()
+        # Register as parameter to ensure it gets moved to gpu with module.
+        self.indices = nn.Parameter(indices, requires_grad=False) 
+        self.dim = dim
 
         return
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-        view = x[...,self.forward_indices[-1]]
-        if len(self.forward_indices) == 2:
-            view = view[...,self.forward_indices[-2],:]
-            # return view2
-        return view
+
+        return torch.index_select(x, dim=self.dim, index=self.indices)
 
 
 class PrependModule(nn.Module):
