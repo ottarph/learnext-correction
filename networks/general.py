@@ -120,7 +120,6 @@ class Context:
         self.epoch: int = 0
         self.train_hist: list[float] = []
         self.lr_hist: list[float] = []
-        self.test_hist: dict[int, float] = {}
         self.val_hist: list[float] = []
 
         return
@@ -155,55 +154,45 @@ class Context:
         else:
             return None
     
-    def save(self, fname: str) -> None:
-
-        data_train = np.array(self.train_hist)
-        data_test = np.zeros((2, len(self.test_hist.values())))
-        data_test[1,:] = np.array(list(self.test_hist.values()))
-        data_test[0,:] = np.array(list(self.test_hist.keys()))
-        data_val = np.array(self.val_hist)
-
-        np.savetxt(fname+".train.txt", data_train)
-        np.savetxt(fname+".test.txt", data_test)
-        np.savetxt(fname+".val.txt", data_val)
-
-        torch.save(self.network.state_dict(), fname+".pt")
-
-        return
-    
-    def load(self, fname: str) -> None:
-
-        data_train = np.loadtxt(fname+".train.txt")
-        data_test = np.loadtxt(fname+".test.txt")
-
-        self.epoch = data_train.shape[0]
-        self.train_hist = list(data_train)
-        if data_test.shape == (0,):
-            self.test_hist = {}
-        else:
-            self.test_hist = {int(i): l for i, l in zip(data_test[0,:], data_test[1,:])}
-
-        data_val = np.loadtxt(fname+".val.txt")
-        self.val_hist = list(data_val)
-
-        self.network.load_state_dict(torch.load(fname+".pt"))
-
-        return
-    
     def save_results(self, folder_name: str) -> None:
         import pathlib
         pathlib.Path(folder_name).mkdir(parents=True, exist_ok=True)
 
         data_train = np.array(self.train_hist)
-        data_test = np.zeros((2, len(self.test_hist.values())))
-        data_test[1,:] = np.array(list(self.test_hist.values()))
-        data_test[0,:] = np.array(list(self.test_hist.keys()))
         data_val = np.array(self.val_hist)
+        data_lr = np.array(self.lr_hist)
 
         np.savetxt(folder_name+"/train.txt", data_train)
-        if len(self.test_hist.keys()) > 0:
-            np.savetxt(folder_name+"/test.txt", data_test)
         np.savetxt(folder_name+"/val.txt", data_val)
+        np.savetxt(folder_name+"/lr.txt", data_lr)
+
+        return
+    
+    def save_model(self, folder_name: str) -> None:
+        import pathlib
+        pathlib.Path(folder_name).mkdir(parents=True, exist_ok=True)
+
+        pathlib.Path(folder_name+"/model.txt").write_text(str(self.network))
+        torch.save(self.network.state_dict(), folder_name+"/state_dict.pt")
+
+        return
+    
+    def load_results(self, folder_name: str) -> None:
+
+        data_train = np.loadtxt(folder_name+"/train.txt")
+        data_val = np.loadtxt(folder_name+"/val.txt")
+        data_lr = np.loadtxt(folder_name+"/lr.txt")
+
+        self.epoch = data_train.shape[0]
+        self.train_hist = list(data_train)
+        self.val_hist = list(data_val)
+        self.lr_hist = list(data_lr)
+
+        return
+    
+    def load_model(self, folder_name: str) -> None:
+
+        self.network.load_state_dict(torch.load(folder_name+"/state_dict.pt"))
 
         return
 

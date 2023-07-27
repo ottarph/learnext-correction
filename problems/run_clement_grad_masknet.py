@@ -135,9 +135,12 @@ def main():
     run_name = "three"
 
     results_dir = f"results/clem_grad/{run_name}"
+    
+    import pathlib
+    pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
+
     context.save_results(results_dir)
 
-    import pathlib
     pathlib.Path(results_dir+"/context.txt").write_text(str(context))
 
     import matplotlib.pyplot as plt
