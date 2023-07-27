@@ -1,9 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader
 from typing import Callable, Iterable, Literal
+from matplotlib.figure import Figure
 
 
 class MLP(nn.Module):
@@ -195,7 +197,30 @@ class Context:
         self.network.load_state_dict(torch.load(folder_name+"/state_dict.pt"))
 
         return
+    
+    def plot_results(self, folder_name: str | None = None) -> Figure:
+        """ Adapted from https://matplotlib.org/stable/gallery/subplots_axes_and_figures/two_scales.html """
+        fig, ax1 = plt.subplots()
 
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Loss')
+        ax1.semilogy(range(self.epoch), self.train_hist, 'k-', label="Train")
+        ax1.semilogy(range(self.epoch), self.val_hist, 'r--', label="Val")
+        ax1.tick_params(axis='y')
+
+        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+        ax2.set_ylabel('lr')
+        ax2.semilogy(range(self.epoch), self.lr_hist, 'b:', alpha=0.8, lw=0.75, label="lr")
+        ax2.tick_params(axis='y')
+
+        fig.tight_layout()  # otherwise the right y-label is slightly clipped
+        fig.legend()
+
+        if folder_name is not None:
+            plt.savefig(f"{folder_name}/train_val_lr_hist.png", dpi=150)
+
+        return fig
 
 def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callback: Callable[[Context], None] | None) -> None:
     network = context.network

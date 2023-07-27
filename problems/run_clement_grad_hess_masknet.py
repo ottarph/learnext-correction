@@ -117,17 +117,10 @@ def main():
     num_epochs = 10
 
     start = timer()
-
     train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
-
     end = timer()
 
-    # print(f"{batch_size=}")
-    # print(f"{widths=}")
     print(f"T = {(end - start):.2f} s")
-    # print(context.train_hist)
-
-    # context.save("models/LBFGS_16_128_2_clm_grad_hess")
 
     run_name = "one"
 
@@ -137,42 +130,11 @@ def main():
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
     context.save_results(results_dir)
-
     pathlib.Path(results_dir+"/context.txt").write_text(str(context))
+    context.plot_results(results_dir)
 
-    import matplotlib.pyplot as plt
-    # plt.figure()
-    # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    # plt.semilogy(range(context.epoch), context.val_hist, 'k--')
-    # plt.savefig(f"results/clem_grad/two/train_val_hist.png", dpi=150)
-
-    """ Adapted from https://matplotlib.org/stable/gallery/subplots_axes_and_figures/two_scales.html """
-    fig, ax1 = plt.subplots()
-
-    # color = 'tab:red'
-    ax1.set_xlabel('Epoch')
-    ax1.set_ylabel('Loss')#, color=color)
-    ax1.semilogy(range(context.epoch), context.train_hist, 'k-', label="Train")#, color=color)
-    ax1.semilogy(range(context.epoch), context.val_hist, 'r--', label="Val")
-    ax1.tick_params(axis='y')#, labelcolor=color)
-
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-
-    # color = 'tab:blue'
-    ax2.set_ylabel('lr')#, color=color)  # we already handled the x-label with ax1
-    ax2.semilogy(range(context.epoch), context.lr_hist, 'b:', alpha=0.8, lw=0.75, label="lr")#, color=color)
-    ax2.tick_params(axis='y')#, labelcolor=color)
-
-    fig.tight_layout()  # otherwise the right y-label is slightly clipped
-    fig.legend()
-
-    plt.savefig(f"{results_dir}/train_val_lr_hist.png", dpi=150)
-
-    # plt.figure()
-    # # plt.plot(range(context.epoch), context.train_hist, 'k-')
-    # plt.semilogy(range(context.epoch), context.train_hist, 'k-')
-    # plt.savefig("foo/clm_grad_hess/LBFGS_16_128_2_clm_grad_hess_train_hist.png", dpi=150)
-
+    # model_dir = f"models/clem_grad_hess/{run_name}"
+    # context.save_model(model_dir)
 
     return
 
