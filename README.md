@@ -11,3 +11,5 @@ Otherwise, requirements are generally
 - `matplotlib`
 
 Scripts to run a specific learning problem are located in the `problems/`-folder. Code here is imported from other locations.
+
+To use without ``MeshView``-functionality, you can install with conda from ``environment.yml`` and then ``pip``-install ``fem_nets`` from local repository.
