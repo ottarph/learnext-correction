@@ -42,6 +42,7 @@ def main():
 
     widths = [8, 128, 2]
     # widths = [8, 512, 2]
+    # widths = [8, 128, 128, 2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
@@ -93,13 +94,15 @@ def main():
     print("Pre-run assertions passed. \n")
 
 
-    cost_function = nn.MSELoss()
-    # cost_function = nn.L1Loss()
+    # cost_function = nn.MSELoss()
+    cost_function = nn.L1Loss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-2)
     optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU with [8, 128, 2]
+    # optimizer = torch.optim.AdamW(mlp.parameters(), weight_decay=1e-2)
     # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU with [8, 128, 2]
 
-    val_cost_function = nn.MSELoss()
+    # val_cost_function = nn.MSELoss()
+    val_cost_function = nn.L1Loss()
 
     # optimizer = torch.optim.Adam(mlp.parameters(), weight_decay=1e-4) # Need to wait until I have test metrics for this
                                                                         # Weight decay does not show up in cost function loss though.
@@ -112,7 +115,7 @@ def main():
 
     print(context, "\n")
 
-    num_epochs = 5
+    num_epochs = 200
 
     start = timer()
     train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
@@ -120,7 +123,7 @@ def main():
 
     print(f"T = {(end - start):.2f} s")
 
-    run_name = "three"
+    run_name = "hotel"
 
     results_dir = f"results/clem_grad/{run_name}"
     
@@ -131,8 +134,8 @@ def main():
     pathlib.Path(results_dir+"/context.txt").write_text(str(context))
     context.plot_results(results_dir)
 
-    # model_dir = f"models/clem_grad/{run_name}"
-    # context.save_model(model_dir)
+    model_dir = f"models/clem_grad/{run_name}"
+    context.save_model(model_dir)
 
     return
 
