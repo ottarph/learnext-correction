@@ -25,6 +25,7 @@ def main():
     fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
+    V = df.VectorFunctionSpace(fluid_mesh, "CG", 1, 2)
 
     # mask_df = poisson_mask(V_scal, normalize = True)
     from conf import poisson_mask_f
@@ -41,7 +42,8 @@ def main():
     #                                        d_xx u_x, d_xy u_x, d_yx u_x, d_yy u_x,
     #                                        d_xx u_y, d_xy u_y, d_yx u_y, d_yy u_y)
 
-    widths = [16, 128, 2]
+    # widths = [16, 128, 2]
+    widths = [16, 128, 128, 2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input        (       x,        y,      u_x,      u_y, 
     #                          d_x u_x,  d_y u_x,  d_x u_y,  d_y u_y,
@@ -66,18 +68,21 @@ def main():
     print(f"{with_submesh = }")
 
     from data_prep.clement.dataset import learnextClementGradHessDataset
-    from conf import train_checkpoints, validation_checkpoints
+    from conf import train_checkpoints, validation_checkpoints, test_checkpoints
     prefix = "data_prep/clement/data_store/grad_hess/clm_grad_hess"
     dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=train_checkpoints,
                                              transform=transform, target_transform=transform)
     val_dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=validation_checkpoints,
                                              transform=transform, target_transform=transform)
+    test_dataset = learnextClementGradHessDataset(prefix=prefix, checkpoints=test_checkpoints,
+                                         transform=transform, target_transform=transform)
     
     
     batch_size = 128
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     x, y = next(iter(dataloader))
     x, y = x.to(device), y.to(device)
@@ -114,27 +119,38 @@ def main():
     print(context, "\n")
 
 
-    num_epochs = 10
+    num_epochs = 150
 
     start = timer()
     train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
-    end = timer()
+    end = timer() 
 
     print(f"T = {(end - start):.2f} s")
 
-    run_name = "one"
+    run_name = "delta"
 
     results_dir = f"results/clem_grad_hess/{run_name}"
     
     import pathlib
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
+
     context.save_results(results_dir)
     pathlib.Path(results_dir+"/context.txt").write_text(str(context))
     context.plot_results(results_dir)
 
-    # model_dir = f"models/clem_grad_hess/{run_name}"
-    # context.save_model(model_dir)
+
+    model_dir = f"models/clem_grad/{run_name}"
+    context.save_model(model_dir)
+
+
+    xdmf_dir = "fenics_output"
+    xdmf_name = f"pred_clem_grad_hess_{run_name}"
+    from tools.saving import save_extensions_to_xdmf
+    mask_net.to("cpu")
+    save_extensions_to_xdmf(mask_net, test_dataloader, V, xdmf_name,
+                            save_dir=xdmf_dir, start_checkpoint=test_checkpoints[0])
+
 
     return
 

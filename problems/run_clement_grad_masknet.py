@@ -26,7 +26,7 @@ def main():
     fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
 
     V_scal = df.FunctionSpace(fluid_mesh, "CG", 1) # Linear scalar polynomials over triangular mesh
-
+    V = df.VectorFunctionSpace(fluid_mesh, "CG", 1, 2)
 
     from conf import poisson_mask_f
     from networks.masknet import poisson_mask_custom
@@ -40,9 +40,10 @@ def main():
     base = TrimModule(indices, dim=-1)
     # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
-    widths = [8, 128, 2]
+    # widths = [8, 128, 2]
     # widths = [8, 512, 2]
     # widths = [8, 128, 128, 2]
+    widths = [8, 256, 256, 2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
@@ -64,19 +65,21 @@ def main():
     print(f"{with_submesh = }")
 
     from data_prep.clement.dataset import learnextClementGradDataset
-    from conf import train_checkpoints, validation_checkpoints
+    from conf import train_checkpoints, validation_checkpoints, test_checkpoints
     prefix = "data_prep/clement/data_store/grad/clm_grad"
     dataset = learnextClementGradDataset(prefix=prefix, checkpoints=train_checkpoints,
                                          transform=transform, target_transform=transform)
     val_dataset = learnextClementGradDataset(prefix=prefix, checkpoints=validation_checkpoints,
                                              transform=transform, target_transform=transform)
-    
+    test_dataset = learnextClementGradDataset(prefix=prefix, checkpoints=test_checkpoints,
+                                         transform=transform, target_transform=transform)
     
     # batch_size = 16
-    batch_size = 256
+    batch_size = 128
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     x, y = next(iter(dataloader))
     x, y = x.to(device), y.to(device)
@@ -94,15 +97,15 @@ def main():
     print("Pre-run assertions passed. \n")
 
 
-    # cost_function = nn.MSELoss()
-    cost_function = nn.L1Loss()
+    cost_function = nn.MSELoss()
+    # cost_function = nn.L1Loss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-2)
-    optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU with [8, 128, 2]
-    # optimizer = torch.optim.AdamW(mlp.parameters(), weight_decay=1e-2)
+    # optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU with [8, 128, 2]
+    optimizer = torch.optim.AdamW(mlp.parameters(), weight_decay=1e-2)
     # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU with [8, 128, 2]
 
-    # val_cost_function = nn.MSELoss()
-    val_cost_function = nn.L1Loss()
+    val_cost_function = nn.MSELoss()
+    # val_cost_function = nn.L1Loss()
 
     # optimizer = torch.optim.Adam(mlp.parameters(), weight_decay=1e-4) # Need to wait until I have test metrics for this
                                                                         # Weight decay does not show up in cost function loss though.
@@ -115,7 +118,7 @@ def main():
 
     print(context, "\n")
 
-    num_epochs = 200
+    num_epochs = 150
 
     start = timer()
     train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
@@ -123,19 +126,29 @@ def main():
 
     print(f"T = {(end - start):.2f} s")
 
-    run_name = "hotel"
+    run_name = "mike"
 
     results_dir = f"results/clem_grad/{run_name}"
     
     import pathlib
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
+
     context.save_results(results_dir)
     pathlib.Path(results_dir+"/context.txt").write_text(str(context))
     context.plot_results(results_dir)
 
+
     model_dir = f"models/clem_grad/{run_name}"
     context.save_model(model_dir)
+
+
+    xdmf_dir = "fenics_output"
+    xdmf_name = f"pred_clem_grad_{run_name}"
+    from tools.saving import save_extensions_to_xdmf
+    mask_net.to("cpu")
+    save_extensions_to_xdmf(mask_net, test_dataloader, V, xdmf_name,
+                            save_dir=xdmf_dir, start_checkpoint=test_checkpoints[0])
 
     return
 
