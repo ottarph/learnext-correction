@@ -2,10 +2,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import pathlib
 
 from torch.utils.data import DataLoader
 from typing import Callable, Iterable, Literal
 from matplotlib.figure import Figure
+LR_Scheduler = torch.optim.lr_scheduler.LRScheduler | torch.optim.lr_scheduler.ReduceLROnPlateau
 
 
 class MLP(nn.Module):
@@ -100,8 +102,10 @@ class PrependModule(nn.Module):
 
 class Context:
 
-    def __init__(self, network: nn.Module, cost_function: Callable, optimizer: torch.optim.Optimizer,
-                 scheduler: Callable[[torch.Tensor | None], None] | None = None,
+    def __init__(self, network: nn.Module, 
+                 cost_function: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], 
+                 optimizer: torch.optim.Optimizer,
+                 scheduler: LR_Scheduler | None = None,
                  validation_cost_function: Callable[[torch.Tensor], torch.Tensor] | None = None):
 
         self.network = network
@@ -151,7 +155,6 @@ class Context:
             return None
     
     def save_results(self, folder_name: str) -> None:
-        import pathlib
         pathlib.Path(folder_name).mkdir(parents=True, exist_ok=True)
 
         data_train = np.array(self.train_hist)
@@ -165,11 +168,28 @@ class Context:
         return
     
     def save_model(self, folder_name: str) -> None:
-        import pathlib
         pathlib.Path(folder_name).mkdir(parents=True, exist_ok=True)
 
         pathlib.Path(folder_name+"/model.txt").write_text(str(self.network))
         torch.save(self.network.state_dict(), folder_name+"/state_dict.pt")
+
+        return
+    
+    def save_summary(self, folder_name: str, file_name: str = "context"):
+        pathlib.Path(folder_name).mkdir(parents=True, exist_ok=True)
+
+        text = f"Network: {self.network} \nCost function: {self.cost_function}" + \
+               f"\nValidation Cost function: {self.validation_cost_function}" + \
+               f"\nOptimizer: {self.optimizer}"
+        
+        text += f"\nScheduler: {self.scheduler.__class__.__name__}: " + \
+                f"\n\t{self.scheduler.state_dict()}"
+        
+        text += f"\nFinal train loss: {self.final_train_loss}" + \
+                f"\nFinal val loss: {self.final_val_loss}" + \
+                f"\nFinal lr: {self.final_lr}"
+        
+        pathlib.Path(f"{folder_name}/{file_name}.txt").write_text(text)
 
         return
     
@@ -239,7 +259,8 @@ def train_network_step(context: Context, x: torch.Tensor, y: torch.Tensor, callb
 def train_with_dataloader(context: Context, train_dataloader: DataLoader, 
                           num_epochs: int, device: Literal["cuda", "cpu"],
                           val_dataloader: DataLoader | None = None, 
-                          callback: Callable[[Context], None] | None = None):
+                          callback: Callable[[Context], None] | None = None,
+                          break_at_lr: float = 1e-8):
 
     network = context.network
     cost_function = context.cost_function
@@ -284,14 +305,16 @@ def train_with_dataloader(context: Context, train_dataloader: DataLoader,
             context.val_hist.append(val_loss)
 
         if scheduler is not None:
-            try:
-                scheduler.step()
-            except:
+            if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 if val_dataloader is not None:
                     scheduler.step(val_loss)
                 else:
                     scheduler.step(epoch_loss)
+            else:
+                scheduler.step()
             lr = optimizer.param_groups[0]["lr"]
+            if lr < break_at_lr:
+                break
         
         print_loss = val_loss if val_dataloader is not None else epoch_loss
         epoch_loop.set_description_str(f"Epoch #{epoch:03}, loss = {print_loss:.2e}, lr = {lr:.1e}")

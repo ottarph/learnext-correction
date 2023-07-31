@@ -40,10 +40,11 @@ def main():
     base = TrimModule(indices, dim=-1)
     # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
-    # widths = [8, 128, 2]
+    widths = [8, 128, 2]
     # widths = [8, 512, 2]
     # widths = [8, 128, 128, 2]
-    widths = [8, 256, 256, 2]
+    # widths = [8, 256, 256, 2]
+    widths = [8, 64, 64, 64, 2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
@@ -75,7 +76,7 @@ def main():
                                          transform=transform, target_transform=transform)
     
     # batch_size = 16
-    batch_size = 128
+    batch_size = 512
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
@@ -107,18 +108,21 @@ def main():
     val_cost_function = nn.MSELoss()
     # val_cost_function = nn.L1Loss()
 
-    # optimizer = torch.optim.Adam(mlp.parameters(), weight_decay=1e-4) # Need to wait until I have test metrics for this
-                                                                        # Weight decay does not show up in cost function loss though.
-
     # scheduler = None
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2)
-    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10)
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.997)
+    # scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, schedulers=[
+    #                     torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=20),
+    #                     torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+    #                     ], milestones=[20])
+    # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: 10.0**((-20+epoch)/20))
+
 
     context = Context(mask_net, cost_function, optimizer, scheduler, val_cost_function)
 
-    print(context, "\n")
+    # print(context, "\n")
 
-    num_epochs = 150
+    num_epochs = 500
 
     start = timer()
     train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
@@ -126,7 +130,7 @@ def main():
 
     print(f"T = {(end - start):.2f} s")
 
-    run_name = "mike"
+    run_name = "quebec"
 
     results_dir = f"results/clem_grad/{run_name}"
     
@@ -135,8 +139,13 @@ def main():
 
 
     context.save_results(results_dir)
-    pathlib.Path(results_dir+"/context.txt").write_text(str(context))
+    context.save_summary(results_dir)
     context.plot_results(results_dir)
+
+    latest_results_dir = "results/latest"
+    context.save_results(latest_results_dir)
+    context.save_summary(latest_results_dir)
+    context.plot_results(latest_results_dir)
 
 
     model_dir = f"models/clem_grad/{run_name}"
@@ -147,8 +156,8 @@ def main():
     xdmf_name = f"pred_clem_grad_{run_name}"
     from tools.saving import save_extensions_to_xdmf
     mask_net.to("cpu")
-    save_extensions_to_xdmf(mask_net, test_dataloader, V, xdmf_name,
-                            save_dir=xdmf_dir, start_checkpoint=test_checkpoints[0])
+    # save_extensions_to_xdmf(mask_net, test_dataloader, V, xdmf_name,
+    #                         save_dir=xdmf_dir, start_checkpoint=test_checkpoints[0])
 
     return
 

@@ -46,9 +46,10 @@ def main():
     # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
     from networks.general import MLP, PrependModule
-    widths = [8, 128, 2]
+    # widths = [8, 128, 2]
     # widths = [8, 512, 2]
     # widths = [8, 128, 128, 2]
+    widths = [8, 64, 64, 64, 2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
@@ -79,7 +80,7 @@ def main():
     from networks.general import Context
     context = Context(mask_net, nn.MSELoss(), torch.optim.Adam(mlp.parameters()))
     model_folder_dir = "models/clem_grad/"
-    run_name = "hotel"
+    run_name = "quebec"
     context.load_model(model_folder_dir+run_name)
 
     test_loss = 0.0
