@@ -77,7 +77,7 @@ def main():
     print("Pre-run assertions passed. \n")
 
 
-    from networks.general import Context
+    from networks.training import Context
     context = Context(mask_net, nn.MSELoss(), torch.optim.Adam(mlp.parameters()))
     model_folder_dir = "models/clem_grad/"
     run_name = "quebec"

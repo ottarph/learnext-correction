@@ -6,8 +6,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from networks.masknet import MaskNet
-from networks.general import MLP, TensorModule, TrimModule, PrependModule, \
-                             Context, train_with_dataloader
+from networks.general import MLP, TensorModule, TrimModule, PrependModule
+from networks.training import Context, train_with_dataloader
 
 
 def main():
@@ -44,6 +44,7 @@ def main():
 
     # widths = [16, 128, 2]
     widths = [16, 128, 128, 2]
+    widths = [16] + [32]*6 + [2]
     mlp = MLP(widths, activation=nn.ReLU())
     # MLP takes input        (       x,        y,      u_x,      u_y, 
     #                          d_x u_x,  d_y u_x,  d_x u_y,  d_y u_y,
@@ -54,7 +55,8 @@ def main():
     prepend = PrependModule(torch.tensor(dof_coordinates, dtype=torch.get_default_dtype()))
     # Prepend inserts (x, y) to beginning of (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
     # to make correct input of MLP.
-    network = nn.Sequential(prepend, mlp)
+    # network = nn.Sequential(prepend, mlp)
+    network = nn.Sequential(prepend, nn.BatchNorm1d(3935), mlp)
 
 
     mask_net = MaskNet(network, base, mask)
@@ -78,7 +80,7 @@ def main():
                                          transform=transform, target_transform=transform)
     
     
-    batch_size = 128
+    batch_size = 256
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
@@ -106,12 +108,13 @@ def main():
     cost_function = nn.MSELoss()
     # optimizer = torch.optim.SGD(mlp.parameters(), lr=1e-1)
     optimizer = torch.optim.Adam(mlp.parameters()) # Good batch size: 512 on GPU, 1024 on CPU
+    # optimizer = torch.optim.Adam(mlp.parameters(), weight_decay=1e-4)
     # optimizer = torch.optim.LBFGS(mlp.parameters(), line_search_fn="strong_wolfe") # Good batch size: 256 on GPU, 16 on CPU
 
     val_cost_function = nn.MSELoss()
 
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.99)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10)
     # scheduler = None
 
     context = Context(mask_net, cost_function, optimizer, scheduler, val_cost_function)
@@ -119,7 +122,7 @@ def main():
     print(context, "\n")
 
 
-    num_epochs = 150
+    num_epochs = 200
 
     start = timer()
     train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
@@ -136,11 +139,16 @@ def main():
 
 
     context.save_results(results_dir)
-    pathlib.Path(results_dir+"/context.txt").write_text(str(context))
+    context.save_summary(results_dir)
     context.plot_results(results_dir)
 
+    latest_results_dir = "results/latest"
+    context.save_results(latest_results_dir)
+    context.save_summary(latest_results_dir)
+    context.plot_results(latest_results_dir)
 
-    model_dir = f"models/clem_grad/{run_name}"
+
+    model_dir = f"models/clem_grad_hess/{run_name}"
     context.save_model(model_dir)
 
 
