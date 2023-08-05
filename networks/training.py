@@ -163,6 +163,7 @@ def train_with_dataloader(context: Context, train_dataloader: DataLoader,
 
     from tqdm import tqdm
 
+    network.train()
     epoch_loop = tqdm(range(1, num_epochs+1), position=0, desc=f"Epoch #000, loss =  ???   , lr = {lr:.1e}")
     for epoch in epoch_loop:
         epoch_loss = 0.0
@@ -187,13 +188,15 @@ def train_with_dataloader(context: Context, train_dataloader: DataLoader,
         context.lr_hist.append(lr)
 
         if val_dataloader is not None:
+            network.eval()
             val_loss = 0.0
-            val_dataloader_loop = tqdm(val_dataloader, position=1, desc="Running over validaton data set.", leave=False)
+            val_dataloader_loop = tqdm(val_dataloader, position=1, desc="Running over validation data set.", leave=False)
             with torch.no_grad():
                 for x, y in val_dataloader_loop:
                     x, y = x.to(device), y.to(device)
                     val_loss += validation_cost_function(network(x), y).item()
             context.val_hist.append(val_loss)
+            network.train()
 
         if scheduler is not None:
             if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):

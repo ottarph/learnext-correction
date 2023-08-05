@@ -2,6 +2,7 @@ import numpy as np
 import dolfin as df
 import torch
 import torch.nn as nn
+import pathlib
 
 from torch.utils.data import DataLoader
 
@@ -12,7 +13,6 @@ from networks.training import Context, train_with_dataloader
 
 
 def main():
-    # torch.set_default_dtype(torch.float64)
     torch.set_default_dtype(torch.float32)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"{device = }")
@@ -20,7 +20,7 @@ def main():
     from timeit import default_timer as timer
     from conf import mesh_file_loc, with_submesh
 
-    torch.manual_seed(0)
+    torch.manual_seed(1)
 
     from tools.loading import load_mesh
     fluid_mesh = load_mesh(mesh_file_loc, with_submesh)
@@ -46,12 +46,11 @@ def main():
                                          transform=transform, target_transform=transform)
     
     # batch_size = 16
-    batch_size = 256
+    batch_size = 128
     shuffle = True
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=shuffle)
-    # test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 
     from conf import poisson_mask_f
@@ -66,45 +65,23 @@ def main():
     base = TrimModule(indices, dim=-1)
     # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
-    widths = [8, 128, 2]
-    # widths = [8, 512, 2]
-    # widths = [8, 128, 128, 2]
-    # widths = [8, 256, 256, 2]
-    # widths = [8, 128, 128, 128, 2]
-    widths = [8, 32, 32, 32, 32, 32, 32, 32, 2]
-    widths = [8] + [32] * 10 + [2]
+    widths = [8] + [128] * 6 + [2]
     mlp = MLP(widths, activation=nn.ReLU())
-    from networks.general import ResNet, MLP_BN
-    mlp = MLP_BN(widths, activation=nn.ReLU())
-    # mlp = ResNet(widths, activation=nn.ReLU())
     # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
 
     dof_coordinates = torch.tensor(V_scal.tabulate_dof_coordinates(), dtype=torch.get_default_dtype())
     prepend = PrependModule(dof_coordinates)
-    # Prepend inserts (x, y) to beginning of (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
+    # prepend inserts (x, y) to beginning of (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
     # to make correct input of MLP.
+
     x_mean = torch.tensor([ 8.4319e-01,  2.0462e-01, -1.5600e-03,  4.7358e-04, -5.4384e-03,
             9.0626e-04,  1.3179e-03,  7.8762e-04])
     x_std = torch.tensor([0.6965, 0.1011, 0.0035, 0.0134, 0.0425, 0.0468, 0.1392, 0.1484])
-    class Normalizer(nn.Module):
-        def __init__(self, x_mean: torch.Tensor, x_std: torch.Tensor):
-            super().__init__()
-            self.x_mean = nn.Parameter(x_mean, requires_grad=False)
-            self.x_std = nn.Parameter(x_std, requires_grad=False)
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            return (x - self.x_mean) / self.x_std
-    class InverseNormalizer(nn.Module):
-        def __init__(self, x_mean: torch.Tensor, x_std: torch.Tensor):
-            super().__init__()
-            self.x_mean = nn.Parameter(x_mean, requires_grad=False)
-            self.x_std = nn.Parameter(x_std, requires_grad=False)
-        def forward(self, x: torch.Tensor) -> torch.Tensor:
-            return x * self.x_std + self.x_mean
+    from networks.general import Normalizer
     normalizer = Normalizer(x_mean, x_std)
-    inverse_normalizer = InverseNormalizer(x_mean[2:4], x_std[2:4])
-    network = nn.Sequential(prepend, mlp)
-    # network = nn.Sequential(prepend, normalizer, mlp)#, inverse_normalizer)
-    # network = nn.Sequential(prepend, nn.BatchNorm1d(3935), mlp)
+    # normalizer changes transforms input to have mean zero and variance one in all dimensions.
+
+    network = nn.Sequential(prepend, normalizer, mlp)
 
 
     mask_net = MaskNet(network, base, mask)
@@ -144,26 +121,28 @@ def main():
     #                     torch.optim.lr_scheduler.LinearLR(optimizer, start_factor=0.1, total_iters=20),
     #                     torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
     #                     ], milestones=[20])
-    # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: 10.0**((-20+epoch)/20))
 
 
     context = Context(mask_net, cost_function, optimizer, scheduler, val_cost_function)
 
     # print(context, "\n")
+    def callback(context: Context) -> None:
+        if context.epoch % 40 == 0:
+            context.plot_results("results/latest")
 
-    num_epochs = 100
+    num_epochs = 500
 
     start = timer()
-    train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader)
+    train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader, callback=callback)
     end = timer()
 
     print(f"T = {(end - start):.2f} s")
 
-    run_name = "whiskey"
+    mask_net.eval()
+
+    run_name = "yankee"
 
     results_dir = f"results/clem_grad/{run_name}"
-    
-    import pathlib
     pathlib.Path(results_dir).mkdir(parents=True, exist_ok=True)
 
 

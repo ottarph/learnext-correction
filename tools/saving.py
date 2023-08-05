@@ -15,6 +15,9 @@ def save_extensions_to_xdmf(model: nn.Module, dataloader: DataLoader, function_s
     
     pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
 
+    was_train_mode = model.training
+    model.eval()
+
     save_label = "predicted_extension"
 
     u_pred = df.Function(function_space)
@@ -32,6 +35,9 @@ def save_extensions_to_xdmf(model: nn.Module, dataloader: DataLoader, function_s
                     u_pred.vector().set_local(new_coeffs)
                     outfile.write_checkpoint(u_pred, save_label, float(k), append=True)
                     k += 1
+
+    if was_train_mode:
+        model.train()
 
     print("Conversion completed.")
 

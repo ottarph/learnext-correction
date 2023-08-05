@@ -1,13 +1,8 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
-import pathlib
 
-from torch.utils.data import DataLoader
-from typing import Callable, Iterable, Literal
-from matplotlib.figure import Figure
-LR_Scheduler = torch.optim.lr_scheduler.LRScheduler | torch.optim.lr_scheduler.ReduceLROnPlateau
+from typing import Callable
 
 
 class MLP(nn.Module):
@@ -33,35 +28,6 @@ class MLP(nn.Module):
         return self.layers(x)
 
 
-class MLP_BN(nn.Module):
-
-    def __init__(self, widths: list[int], activation: Callable[[torch.Tensor], torch.Tensor] = nn.ReLU()):
-        super().__init__()
-
-        self.widths = widths
-        self.activation = activation
-        # self.bn = nn.BatchNorm1d(3935)
-
-        layers = []
-        layers = [nn.BatchNorm1d(3935)]
-        for w1, w2 in zip(widths[:-1], widths[1:]):
-            layers.append(nn.Linear(w1, w2))
-            layers.append(self.activation)
-            # layers.append(self.bn)
-        # self.layers = nn.Sequential(*layers[:-2])
-        self.layers = nn.Sequential(*layers[:-1])
-        self.layers = nn.Sequential(*layers[:-2], nn.BatchNorm1d(3935), layers[-2])
-        # new_layers = [layers[0], activation, ]
-
-        return
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        assert len(x.shape) >= 2, "Must be batched."
-        assert x.shape[-1] == self.widths[0], "Dimension of argument must match in non-batch dimension."
-
-        return self.layers(x)
-
-
 class ResNet(nn.Module):
 
     def __init__(self, widths: list[int], activation: Callable[[torch.Tensor], torch.Tensor] = nn.ReLU()):
@@ -73,8 +39,6 @@ class ResNet(nn.Module):
         layers = []
         for w1, w2 in zip(widths[:-1], widths[1:]):
             layers.append(nn.Linear(w1, w2))
-            # layers.append(self.activation)
-        # self.layers = nn.Sequential(*layers)#[:-1])
         self.layers = nn.ModuleList(layers)
 
         return
@@ -93,6 +57,10 @@ class ResNet(nn.Module):
 class TensorModule(nn.Module):
 
     def __init__(self, x: torch.Tensor):
+        """
+            Module whose forward call always returns the tensor `x` passed as initialization argument,
+            no matter what the forward call arguments are.
+        """
         super().__init__()
 
         self.x = nn.Parameter(x.detach().clone())
@@ -108,8 +76,8 @@ class TrimModule(nn.Module):
     
     def __init__(self, indices: torch.LongTensor, dim: int = -1):
         """
-            A module whose `.forward(x)`-call returns `x`, but with the last
-            dimensions selected according to `indices`.
+            A module whose `.forward(x)`-call returns `x`, but selected along
+            ``dim`` according to `indices`.
         """
         super().__init__()
 
@@ -152,3 +120,32 @@ class PrependModule(nn.Module):
 
         return out
 
+
+class Normalizer(nn.Module):
+
+    def __init__(self, x_mean: torch.Tensor, x_std: torch.Tensor):
+        super().__init__()
+
+        self.x_mean = nn.Parameter(x_mean, requires_grad=False)
+        self.x_std = nn.Parameter(x_std, requires_grad=False)
+        
+        return
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+
+        return (x - self.x_mean) / self.x_std
+
+
+class InverseNormalizer(nn.Module):
+
+    def __init__(self, x_mean: torch.Tensor, x_std: torch.Tensor):
+        super().__init__()
+
+        self.x_mean = nn.Parameter(x_mean, requires_grad=False)
+        self.x_std = nn.Parameter(x_std, requires_grad=False)
+
+        return
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        return x * self.x_std + self.x_mean

@@ -3,7 +3,7 @@ import dolfin as df
 import fem_nets
 
 
-def load_mesh(mesh_file_loc: str, with_submesh: bool = False):
+def load_mesh(mesh_file_loc: str, with_submesh: bool = False) -> df.Mesh:
     if with_submesh:
         mesh = load_mesh_submesh(mesh_file_loc)
     else:
