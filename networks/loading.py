@@ -11,16 +11,6 @@ import networks.general
 
 class ModelBuilder:
 
-    def __new__(cls, model_dict: dict) -> nn.Module:
-
-        assert len(model_dict.keys()) == 1
-        key = next(iter(model_dict.keys()))
-        val = model_dict[key]
-
-        model: nn.Module = getattr(cls, key)(val)
-
-        return model
-
     def activation(activation_type: str) -> nn.Module:
         activations = {"ReLU": nn.ReLU(), 
                        "Tanh": nn.Tanh(),
@@ -36,7 +26,7 @@ class ModelBuilder:
     
     def Sequential(model_dicts: list[dict]) -> nn.Sequential:
 
-        return nn.Sequential(*(ModelBuilder(model_dict)
+        return nn.Sequential(*(build_model(model_dict)
                                 for model_dict in model_dicts))
     
     def Normalizer(normalizer_dict: dict) -> networks.general.Normalizer:
@@ -70,7 +60,7 @@ class ModelLoader:
                 model_dict= json.loads(infile.read())
         else:
             raise ValueError
-        model: nn.Module = ModelBuilder(model_dict)
+        model: nn.Module = build_model(model_dict)
 
         if load_state_dict:
             model.load_state_dict(torch.load(model_dir / "state_dict.pt"))
