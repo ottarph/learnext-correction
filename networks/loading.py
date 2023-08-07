@@ -7,7 +7,7 @@ import yaml
 from typing import Literal
 from os import PathLike
 
-from networks.general import MLP, Normalizer, InverseNormalizer
+import networks.general
 
 class ModelBuilder:
 
@@ -20,38 +20,38 @@ class ModelBuilder:
         model: nn.Module = getattr(cls, key)(val)
 
         return model
-    
+
     def activation(activation_type: str) -> nn.Module:
         activations = {"ReLU": nn.ReLU(), 
                        "Tanh": nn.Tanh(),
                        "Sigmoid": nn.Sigmoid()}
         return activations[activation_type]
 
-    def MLP(mlp_dict: dict) -> MLP:
+    def MLP(mlp_dict: dict) -> networks.general.MLP:
 
         activation = ModelBuilder.activation(mlp_dict["activation"])
         widths = mlp_dict["widths"]
 
-        return MLP(widths, activation)
+        return networks.general.MLP(widths, activation)
     
     def Sequential(model_dicts: list[dict]) -> nn.Sequential:
 
         return nn.Sequential(*(ModelBuilder(model_dict)
                                 for model_dict in model_dicts))
     
-    def Normalizer(normalizer_dict: dict) -> Normalizer:
+    def Normalizer(normalizer_dict: dict) -> networks.general.Normalizer:
 
         x_mean = torch.Tensor(normalizer_dict["x_mean"])
         x_var = torch.Tensor(normalizer_dict["x_var"])
 
-        return Normalizer(x_mean, x_var)
+        return networks.general.Normalizer(x_mean, x_var)
     
-    def InverseNormalizer(normalizer_dict: dict) -> InverseNormalizer:
+    def InverseNormalizer(normalizer_dict: dict) -> networks.general.InverseNormalizer:
 
         x_mean = torch.Tensor(normalizer_dict["x_mean"])
         x_var = torch.Tensor(normalizer_dict["x_var"])
 
-        return InverseNormalizer(x_mean, x_var)
+        return networks.general.InverseNormalizer(x_mean, x_var)
 
 
 class ModelLoader:

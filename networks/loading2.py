@@ -7,47 +7,15 @@ import yaml
 from typing import Literal
 from os import PathLike
 
-import networks.general
+from networks.loading import ModelBuilder
 
 def build_model(model_dict: dict) -> nn.Module:
-    
-    def activation(activation_type: str) -> nn.Module:
-        activations = {"ReLU": nn.ReLU(), 
-                       "Tanh": nn.Tanh(),
-                       "Sigmoid": nn.Sigmoid()}
-        return activations[activation_type]
-
-    def MLP(mlp_dict: dict) -> networks.general.MLP:
-
-        act = activation(mlp_dict["activation"])
-        widths = mlp_dict["widths"]
-
-        return networks.general.MLP(widths, act)
-    
-    def Sequential(model_dicts: list[dict]) -> nn.Sequential:
-
-        return nn.Sequential(*(build_model(model_dict)
-                                for model_dict in model_dicts))
-    
-    def Normalizer(normalizer_dict: dict) -> networks.general.Normalizer:
-
-        x_mean = torch.Tensor(normalizer_dict["x_mean"])
-        x_var = torch.Tensor(normalizer_dict["x_var"])
-
-        return networks.general.Normalizer(x_mean, x_var)
-    
-    def InverseNormalizer(normalizer_dict: dict) -> networks.general.InverseNormalizer:
-
-        x_mean = torch.Tensor(normalizer_dict["x_mean"])
-        x_var = torch.Tensor(normalizer_dict["x_var"])
-
-        return networks.general.InverseNormalizer(x_mean, x_var)
 
     assert len(model_dict.keys()) == 1
     key = next(iter(model_dict.keys()))
     val = model_dict[key]
 
-    model: nn.Module = locals()[key](val)
+    model: nn.Module = getattr(ModelBuilder, key)(val)
 
     return model
 
