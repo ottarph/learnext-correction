@@ -9,8 +9,7 @@ from os import PathLike
 
 import networks.general
 
-def ModelBuilder(model_dict: dict) -> nn.Module:
-
+def build_model(model_dict: dict) -> nn.Module:
     
     def activation(activation_type: str) -> nn.Module:
         activations = {"ReLU": nn.ReLU(), 
@@ -27,7 +26,7 @@ def ModelBuilder(model_dict: dict) -> nn.Module:
     
     def Sequential(model_dicts: list[dict]) -> nn.Sequential:
 
-        return nn.Sequential(*(ModelBuilder(model_dict)
+        return nn.Sequential(*(build_model(model_dict)
                                 for model_dict in model_dicts))
     
     def Normalizer(normalizer_dict: dict) -> networks.general.Normalizer:
@@ -53,7 +52,7 @@ def ModelBuilder(model_dict: dict) -> nn.Module:
     return model
 
 
-def ModelLoader(model_dir: PathLike, load_state_dict: bool = True,
+def load_model(model_dir: PathLike, load_state_dict: bool = True,
                             mode: Literal["yaml", "json"] = "yaml") -> nn.Module:
     model_dir = Path(model_dir)
     if not model_dir.is_dir():
@@ -67,7 +66,7 @@ def ModelLoader(model_dir: PathLike, load_state_dict: bool = True,
             model_dict= json.loads(infile.read())
     else:
         raise ValueError
-    model: nn.Module = ModelBuilder(model_dict)
+    model = build_model(model_dict)
 
     if load_state_dict:
         model.load_state_dict(torch.load(model_dir / "state_dict.pt"))
@@ -82,8 +81,8 @@ if __name__ == "__main__":
 
     print(obj)
 
-    model = ModelBuilder(obj)
+    model = build_model(obj)
     print(model)
 
-    model = ModelLoader("networks/test/test_model")
+    model = load_model("networks/test/test_model")
     print(model)
