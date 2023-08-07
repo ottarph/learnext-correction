@@ -1,5 +1,4 @@
 from networks.loading import *
-from networks.loading2 import *
 
 def test_load_yml():
 
