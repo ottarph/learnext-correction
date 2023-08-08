@@ -2,7 +2,7 @@
 Sequential:
 - Normalizer:
     x_mean: [0.321, 0.42]
-    x_var: [0.22, 1.02]
+    x_std: [0.22, 1.02]
 - MLP:
     widths: [2, 32, 4]
     activation: "Tanh"

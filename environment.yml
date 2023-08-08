@@ -19,5 +19,5 @@ dependencies:
   - pyyaml
 
 
-# mamba install python=3.10 pytorch pytorch-cuda=11.7 fenics gmsh python-gmsh meshio numpy matplotlib ipykernel tqdm pytest -c pytorch -c nvidia -c conda-forge --dry-run
-# Afterwards, need to install femnets manually. Move to femnets repository, then pip install -e. Test install with `import fem_nets`.
+# mamba install python=3.10 pytorch pytorch-cuda=11.7 fenics gmsh python-gmsh meshio numpy matplotlib ipykernel tqdm pytest pyyaml -c pytorch -c nvidia -c conda-forge --dry-run
+# Afterwards, need to install femnets manually: Move to femnets repository, then pip install -e. Test install with `import fem_nets`.

@@ -32,16 +32,16 @@ class ModelBuilder:
     def Normalizer(normalizer_dict: dict) -> networks.general.Normalizer:
 
         x_mean = torch.Tensor(normalizer_dict["x_mean"])
-        x_var = torch.Tensor(normalizer_dict["x_var"])
+        x_std = torch.Tensor(normalizer_dict["x_std"])
 
-        return networks.general.Normalizer(x_mean, x_var)
+        return networks.general.Normalizer(x_mean, x_std)
     
     def InverseNormalizer(normalizer_dict: dict) -> networks.general.InverseNormalizer:
 
         x_mean = torch.Tensor(normalizer_dict["x_mean"])
-        x_var = torch.Tensor(normalizer_dict["x_var"])
+        x_std = torch.Tensor(normalizer_dict["x_std"])
 
-        return networks.general.InverseNormalizer(x_mean, x_var)
+        return networks.general.InverseNormalizer(x_mean, x_std)
 
 
 class ModelLoader:

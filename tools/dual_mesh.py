@@ -1,4 +1,4 @@
-from xii.meshing.make_mesh_cpp import make_mesh
+from tools.make_mesh_cpp import make_mesh
 
 from itertools import combinations, count
 import numpy as np

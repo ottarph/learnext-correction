@@ -77,13 +77,13 @@ PYBIND11_MODULE(SIGNATURE, m)
 # --------------
 
 module = compile_cpp(code)
-
+import numpy as np
 def make_mesh(coordinates, cells, tdim, gdim, mesh=None):
     '''Mesh by MeshEditor from vertices and cells'''
     if mesh is None:
         mesh = Mesh()
         assert mesh.mpi_comm().size == 1
 
-    module.fill_mesh(coordinates.flatten(), cells.flatten(), tdim, gdim, mesh)
+    module.fill_mesh(coordinates.flatten(), cells.flatten().astype(np.int32), tdim, gdim, mesh)
     
     return mesh
