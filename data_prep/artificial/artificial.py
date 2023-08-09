@@ -24,6 +24,14 @@ class ElasticSolver:
     """
     pass
 
+class HarmonicExtender:
+    """
+        Takes deformations made by ``DeformationFactory`` and
+        turns them into harmonic extensions over the 
+        fluid domain.
+    """
+    pass
+
 class BiharmonicExtender:
     """
         Takes deformations made by ``DeformationFactory`` and
