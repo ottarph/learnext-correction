@@ -71,7 +71,9 @@ def solve_neohook_solid(boundaries, volume_load, surface_load, displacement_bcs,
            for tag, value in displacement_bcs.items()]
     
     # Solve variational problem
-    solve(F == 0, u, bcs, J=J, form_compiler_parameters=ffc_options)
+    solve(F == 0, u, bcs, J=J, form_compiler_parameters=ffc_options,
+          solver_parameters={"nonlinear_solver": "newton", "newton_solver":
+            {"maximum_iterations": 20}})
 
     return u
 
