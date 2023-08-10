@@ -162,35 +162,11 @@ if __name__ == '__main__':
     
     fluid_boundaries = translate_entity_f(fluid_mesh, facet_f, fluid_mesh, mapping[params['fluid']])
     solid_boundaries = translate_entity_f(solid_mesh, facet_f, solid_mesh, mapping[params['solid']])
-    
-    df.File('fluid_boundaries.pvd') << fluid_boundaries
-    df.File('solid_boundaries.pvd') << solid_boundaries    
-    
-    interface_tags = set(mapping[params['fluid']]) & set(mapping[params['solid']])
-    # The solid displacement will need to be moved to fluid
-    VS = df.FunctionSpace(solid_mesh, 'CG', 2)
-    uS = df.Expression('x[0]+2*x[1]', degree=1)
-    
-    VF = df.FunctionSpace(fluid_mesh, 'CG', 2)
-    bcs = [df.DirichletBC(VF, uS, fluid_boundaries, tag) for tag in interface_tags]
 
-    # Transfer
-    uF = df.Function(VF)
-    uS.set_allow_extrapolation(True)
-    [bc.apply(uF.vector()) for bc in bcs]
+    with df.HDF5File(mesh.mpi_comm(), 'fluid.h5', 'w') as h5:
+        h5.write(fluid_mesh, 'mesh')
+        h5.write(fluid_boundaries, 'boundaries')
 
-    print(interface_tags)
-    dsS_interface = [df.ds(domain=solid_mesh, subdomain_data=solid_boundaries, subdomain_id=tag)
-                     for tag in interface_tags]
-    u, v = df.TrialFunction(VS), df.TestFunction(VS)
-    MS = df.assemble(sum(df.inner(u, v)*dsSi for dsSi in dsS_interface))
-    assert MS.norm('linf') > 0
-    
-    #
-    #true = df.assemble(sum((df.Constant(0) + df.inner(uS, uS))*dsS(subdomain_id=tag) for tag in interface_tags))
-    
-    #dsF = df.ds(domain=fluid_boundaries.mesh(), subdomain_data=fluid_boundaries)
-    # See if it is okay
-
-    #transfered = df.assemble(sum(df.inner(uF, uF)*dsF(tag) for tag in interface_tags))
-    #print(true, transfered)
+    with df.HDF5File(mesh.mpi_comm(), 'solid.h5', 'w') as h5:
+        h5.write(solid_mesh, 'mesh')
+        h5.write(solid_boundaries, 'boundaries')
