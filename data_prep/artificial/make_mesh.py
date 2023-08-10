@@ -1,5 +1,6 @@
 # https://github.com/MiroK/gmshnics
 from gmshnics.interopt import msh_gmsh_model, mesh_from_gmsh
+import dolfin as df
 import numpy as np
 import gmsh
 
@@ -34,6 +35,7 @@ def create_mesh():
               "obstacle_solid": noslipobstacle,
               "obstacle_fluid": obstacle,
               "interface": interface,
+              'flag_tip': flag_tip,
               "mesh_parts": True,
               "fluid": fluid,
               "solid": solid
@@ -73,8 +75,11 @@ def create_mesh():
     fl3 = fac.addLine(pf1, pc2)
 
     # obstacle
-    obstacle_ = fac.addCurveLoop([fl1, fl2, fl3, circle1, circle2])
-    flag = fac.addCurveLoop([circle3, fl1, fl2, fl3])
+    obstacle_curves = [fl1, fl2, fl3, circle1, circle2]
+    obstacle_ = fac.addCurveLoop(obstacle_curves)
+
+    flag_curves = [circle3, fl1, fl2, fl3]
+    flag = fac.addCurveLoop(flag_curves)
 
     # Add points with finer resolution on left side
     points = [fac.addPoint(0, 0, 0, resolution),
@@ -95,31 +100,97 @@ def create_mesh():
 
     model.mesh.generate(2)
 
-    model.addPhysicalGroup(1, [channel_lines[0]], inflow) # mark inflow boundary with 1
-    model.addPhysicalGroup(1, [channel_lines[2]], outflow) # mark outflow boundary with 2
-    model.addPhysicalGroup(1, [channel_lines[1], channel_lines[3]], walls) # mark walls with 3
-    model.addPhysicalGroup(1, [circle3], noslipobstacle)
-    model.addPhysicalGroup(1, [circle1, circle2], obstacle) # mark obstacle with 4
-    model.addPhysicalGroup(1, [fl1, fl3], interface) # mark interface with 5
-    model.addPhysicalGroup(1, [fl2], flag_tip) # mark interface with 5
+    model.addPhysicalGroup(1, [channel_lines[0]], params['inflow']) 
+    model.addPhysicalGroup(1, [channel_lines[2]], params['outflow']) 
+    model.addPhysicalGroup(1, [channel_lines[1], channel_lines[3]], params['noslip'])
+    model.addPhysicalGroup(1, [circle3], params['obstacle_solid'])
+    model.addPhysicalGroup(1, [circle1, circle2], params['obstacle_fluid']) 
+    model.addPhysicalGroup(1, [fl1, fl3], params['interface']) 
+    model.addPhysicalGroup(1, [fl2], params['flag_tip']) 
 
-    model.addPhysicalGroup(2, [plane_surface], fluid) # mark fluid domain with 6
-    model.addPhysicalGroup(2, [plane_surface2], solid) # mark solid domain with 7
+    model.addPhysicalGroup(2, [plane_surface], params['fluid']) 
+    model.addPhysicalGroup(2, [plane_surface2], params['solid']) 
 
     nodes, topologies = msh_gmsh_model(model, dim=2)
     mesh, entity_functions = mesh_from_gmsh(nodes, topologies)
 
-    # gmsh.fltk.initialize()
-    # gmsh.fltk.run()
+    # Representation of physical volumes in terms of bounding surfaces
+    mappings = {fluid: np.unique(np.hstack([model.getPhysicalGroupsForEntity(1, e)
+                                            for e in channel_lines + obstacle_curves])),
+                solid: np.unique(np.hstack([model.getPhysicalGroupsForEntity(1, e)
+                                            for e in flag_curves]))}
+
     gmsh.finalize()
     
-    return mesh, entity_functions
+    return mesh, entity_functions, mappings, params, geom_prop
+
+
+def translate_entity_f(parent_mesh, source_f, child_mesh, tags):
+    '''Create entity function on child mesh'''
+    child2parent = parent_mesh.data().array('parent_vertex_indices', 0)
+    vertex_map = {v: k for k, v in enumerate(child2parent)}
+
+    edim = source_f.dim()
+
+    _, e2v = child_mesh.init(edim, 0), child_mesh.topology()(edim, 0)
+
+    child_f = df.MeshFunction('size_t', child_mesh, edim, 0)
+    child_entities = {tuple(sorted(e.entities(0))): e.index() for e in df.SubsetIterator(child_f, 0)}
+    for tag in tags:
+        for parent_entity in df.SubsetIterator(source_f, tag):
+            parent_vertices = parent_entity.entities(0)
+            # Now encode them in child
+            child_vertices = tuple(sorted([vertex_map[pv] for pv in parent_vertices]))
+            # Look for the matching child entity
+            child_entity = child_entities[child_vertices]
+            child_f[child_entity] = tag
+    return child_f
 
 # --------------------------------------------------------------------
 
 if __name__ == '__main__':
+    import dolfin as df
+    
+    mesh, entity_fs, mapping, params, _ = create_mesh()
+    # Submeshes
+    cell_f = entity_fs[mesh.topology().dim()]
 
-    mesh, entity_fs = create_mesh()
-    # TODO:
-    # Let it return {volume_phys_tag -> [boundaing surface_tags]}
-    # Create 2 submeshes with translated markers
+    fluid_mesh = df.SubMesh(mesh, cell_f, params['fluid'])
+    solid_mesh = df.SubMesh(mesh, cell_f, params['solid'])
+
+    facet_f = entity_fs[mesh.topology().dim()-1]
+    
+    fluid_boundaries = translate_entity_f(fluid_mesh, facet_f, fluid_mesh, mapping[params['fluid']])
+    solid_boundaries = translate_entity_f(solid_mesh, facet_f, solid_mesh, mapping[params['solid']])
+    
+    df.File('fluid_boundaries.pvd') << fluid_boundaries
+    df.File('solid_boundaries.pvd') << solid_boundaries    
+    
+    interface_tags = set(mapping[params['fluid']]) & set(mapping[params['solid']])
+    # The solid displacement will need to be moved to fluid
+    VS = df.FunctionSpace(solid_mesh, 'CG', 2)
+    uS = df.Expression('x[0]+2*x[1]', degree=1)
+    
+    VF = df.FunctionSpace(fluid_mesh, 'CG', 2)
+    bcs = [df.DirichletBC(VF, uS, fluid_boundaries, tag) for tag in interface_tags]
+
+    # Transfer
+    uF = df.Function(VF)
+    uS.set_allow_extrapolation(True)
+    [bc.apply(uF.vector()) for bc in bcs]
+
+    print(interface_tags)
+    dsS_interface = [df.ds(domain=solid_mesh, subdomain_data=solid_boundaries, subdomain_id=tag)
+                     for tag in interface_tags]
+    u, v = df.TrialFunction(VS), df.TestFunction(VS)
+    MS = df.assemble(sum(df.inner(u, v)*dsSi for dsSi in dsS_interface))
+    assert MS.norm('linf') > 0
+    
+    #
+    #true = df.assemble(sum((df.Constant(0) + df.inner(uS, uS))*dsS(subdomain_id=tag) for tag in interface_tags))
+    
+    #dsF = df.ds(domain=fluid_boundaries.mesh(), subdomain_data=fluid_boundaries)
+    # See if it is okay
+
+    #transfered = df.assemble(sum(df.inner(uF, uF)*dsF(tag) for tag in interface_tags))
+    #print(true, transfered)
