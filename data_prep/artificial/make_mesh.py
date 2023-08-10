@@ -146,6 +146,65 @@ def translate_entity_f(parent_mesh, source_f, child_mesh, tags):
             child_f[child_entity] = tag
     return child_f
 
+
+def translate_function(from_u, to_facet_f, from_facet_f, shared_tags, to_u=None, tol_=1E-12):
+    '''
+    If tu_u and from_u are 2 functions on different domains that share 
+    facets we transfer boundary data to to_u from from_u.
+    '''
+    if to_u is None:
+        to_u = df.Function(df.FunctionSpace(to_facet_f.mesh(), from_u.ufl_element()))
+
+    shape = to_u.ufl_shape    
+    assert shape == from_u.ufl_shape
+    assert len(shape) == 1  # We will only use this for vector spaces
+    
+    assert shared_tags
+    assert to_facet_f.dim() == from_facet_f.dim()
+
+    Vto = to_u.function_space()
+    assert Vto.mesh().id() == to_facet_f.mesh().id()
+    assert Vto.mesh().topology().dim() - 1 == to_facet_f.dim()
+
+    Vfrom = from_u.function_space()
+    assert Vfrom.mesh().id() == from_facet_f.mesh().id()
+    assert Vfrom.mesh().topology().dim() - 1 == from_facet_f.dim()
+
+    assert Vfrom.ufl_element() == Vto.ufl_element()
+
+    to_dofs, from_values = [], []
+    for dim in range(shape[0]):
+        for tag in shared_tags:
+            from_u_dim = df.Function(Vfrom.sub(dim).collapse())
+            df.assign(from_u_dim, from_u.sub(dim))
+            bc_from = df.DirichletBC(Vfrom.sub(dim), from_u_dim, from_facet_f, tag)
+            
+            this_from_dofs = list(bc_from.get_boundary_values().keys())
+            from_values.extend(bc_from.get_boundary_values().values())
+            
+            # Bc dofs need to find the right permutation ...
+            bc_to = df.DirichletBC(Vto.sub(dim), df.Constant(0), to_facet_f, tag)
+            this_to_dofs = list(bc_to.get_boundary_values().keys())
+
+            # ... based on position of dofs
+            x = Vfrom.tabulate_dof_coordinates()
+            y = Vto.tabulate_dof_coordinates()[this_to_dofs]
+
+            for from_dof in this_from_dofs:
+                dist = np.linalg.norm(y - x[from_dof], 2, axis=1)
+                assert len(dist) == len(y)
+                match_index = np.argmin(dist)
+                assert dist[match_index] < tol_, (dist[match_index], dim, tag)
+
+                to_dofs.append(this_to_dofs[match_index])
+
+    to_values = to_u.vector().get_local()
+    to_values[to_dofs] = from_values
+
+    to_u.vector().set_local(to_values)
+
+    return to_u
+
 # --------------------------------------------------------------------
 
 if __name__ == '__main__':
@@ -170,3 +229,25 @@ if __name__ == '__main__':
     with df.HDF5File(mesh.mpi_comm(), 'solid.h5', 'w') as h5:
         h5.write(solid_mesh, 'mesh')
         h5.write(solid_boundaries, 'boundaries')
+
+    f = df.Expression(('x[0]+2*x[1]', 'x[1]-2*x[0]'), degree=1)
+    # Suppose we solve on solid and want to represent that function as data
+    # for fluid
+    VS = df.VectorFunctionSpace(solid_mesh, 'CG', 2)
+    uS = df.interpolate(f, VS)
+
+    interface_dofs = set(mapping[params['fluid']]) & set(mapping[params['solid']])
+    uF = translate_function(from_u=uS,
+                            to_facet_f=fluid_boundaries,
+                            from_facet_f=solid_boundaries,
+                            shared_tags=interface_dofs)
+
+    VF = uF.function_space()
+    x = VF.tabulate_dof_coordinates()
+    # So now on iface_dofs
+    for tag in interface_dofs:
+        bc = df.DirichletBC(VF, uF, fluid_boundaries, tag)
+
+        bc_dofs = bc.get_boundary_values().keys()
+        error = max(np.linalg.norm(uF(x[dof]) - f(x[dof])) for dof in bc_dofs)
+        assert error < 1E-13

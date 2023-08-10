@@ -108,9 +108,7 @@ if __name__ == '__main__':
     uh.rename('uh', '')
     File('displacement.pvd') << uh
 
-    # NOTE: this is to traslate bcs by simple interpolation but it might
-    # be better to move the dofs
-    uh.set_allow_extrapolation(True)    
+
     # Let's try with Harmonic extension
     fluid_mesh = Mesh()
     with HDF5File(fluid_mesh.mpi_comm(), 'fluid.h5', 'r') as h5:
@@ -125,13 +123,21 @@ if __name__ == '__main__':
     iface_tags = {6, 9}
     zero_displacement_tags = fluid_tags - iface_tags
 
+    # Represent the solid data on fluid mesh
+    from make_mesh import translate_function
+
+    uh_fluid = translate_function(from_u=uh,
+                                  from_facet_f=solid_boundaries,
+                                  to_facet_f=fluid_boundaries,
+                                  shared_tags=iface_tags)
+
     V = VectorFunctionSpace(fluid_mesh, 'CG', 2)
     u, v = TrialFunction(V), TestFunction(V)
 
     a = inner(grad(u), grad(v))*dx
     L = inner(Constant((0, )*len(u)), v)*dx
     # Those from solid
-    bcs = [DirichletBC(V, uh, fluid_boundaries, tag) for tag in iface_tags]
+    bcs = [DirichletBC(V, uh_fluid, fluid_boundaries, tag) for tag in iface_tags]
     # The rest is fixed
     null = Constant((0, )*len(u))
     bcs.extend([DirichletBC(V, null, fluid_boundaries, tag) for tag in zero_displacement_tags])
