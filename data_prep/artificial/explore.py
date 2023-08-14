@@ -26,8 +26,12 @@ if __name__ == "__main__":
     x0_flag, x1_flag = 0.24898979485, 0.6
     L_flag = x1_flag - x0_flag
     # six_load = df.Expression(('0', 'C*sin(1*pi/L * (x[0] - B))*sin(1*pi/L * (x[0] - B))'), degree=1, L=L_flag, B=x0_flag, C=8E-4)
-    six_load = df.Expression(('0', 'abs(x[0] - 0.45) < 0.05? C: 0'), degree=1, C=4E2)
-    surface_load = {9: df.Constant((0, -2.12E3)), 6: six_load}
+    theta = 0.1*2*np.pi
+    theta = 0.125*2*np.pi
+    theta = 0.06283185
+    six_load = df.Expression(('0', 'abs(x[0] - 0.4) < 0.02? C: 0'), degree=1, C=-1.7E3*np.cos(theta+0.0*np.pi))
+    nine_load = df.Constant((0, 1.925E3*np.cos(theta)))
+    surface_load = {9: nine_load, 6: six_load}
 
     solvers = {"neohook": solve_neohook_solid, "linear": solve_linear_solid}
     solid_type = "neohook"
