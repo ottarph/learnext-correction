@@ -83,12 +83,12 @@ if __name__ == '__main__':
     import numpy as np
     
     solid_mesh = Mesh()
-    with HDF5File(solid_mesh.mpi_comm(), 'solid.h5', 'r') as h5:
+    with HDF5File(solid_mesh.mpi_comm(), 'data_prep/artificial/working_space/solid.h5', 'r') as h5:
         h5.read(solid_mesh, 'mesh', False)
 
     tdim = solid_mesh.topology().dim()
     solid_boundaries = MeshFunction('size_t', solid_mesh, tdim-1, 0)
-    with HDF5File(solid_mesh.mpi_comm(), 'solid.h5', 'r') as h5:
+    with HDF5File(solid_mesh.mpi_comm(), 'data_prep/artificial/working_space/solid.h5', 'r') as h5:
         h5.read(solid_boundaries, 'boundaries')
 
     # ----6----
@@ -113,18 +113,19 @@ if __name__ == '__main__':
 
     # Let's try with Harmonic extension
     fluid_mesh = Mesh()
-    with HDF5File(fluid_mesh.mpi_comm(), 'fluid.h5', 'r') as h5:
+    with HDF5File(fluid_mesh.mpi_comm(), 'data_prep/artificial/working_space/fluid.h5', 'r') as h5:
         h5.read(fluid_mesh, 'mesh', False)
 
     tdim = fluid_mesh.topology().dim()
     fluid_boundaries = MeshFunction('size_t', fluid_mesh, tdim-1, 0)
-    with HDF5File(fluid_mesh.mpi_comm(), 'fluid.h5', 'r') as h5:
+    with HDF5File(fluid_mesh.mpi_comm(), 'data_prep/artificial/working_space/fluid.h5', 'r') as h5:
         h5.read(fluid_boundaries, 'boundaries')
 
     fluid_tags = set(fluid_boundaries.array()) - set((0, ))
     iface_tags = {6, 9}
     zero_displacement_tags = fluid_tags - iface_tags
 
+    print(fluid_mesh.num_vertices())
     # Represent the solid data on fluid mesh
     from make_mesh import translate_function
 

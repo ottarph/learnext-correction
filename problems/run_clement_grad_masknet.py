@@ -160,7 +160,7 @@ def main():
     context.save_model(model_dir)
 
 
-    xdmf_dir = "fenics_output"
+    xdmf_dir = "fenics_output/clem_grad"
     xdmf_name = f"pred_clem_grad_{run_name}"
     from tools.saving import save_extensions_to_xdmf
     mask_net.to("cpu")
