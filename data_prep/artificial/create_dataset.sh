@@ -5,7 +5,7 @@
 #   PYTHONPATH=. python3 data_prep/artificial/beam_simulations/explore_loop2.py &
 #   PYTHONPATH=. python3 data_prep/artificial/beam_simulations/explore_loop3.py &
 #   ...,
-# making sure to do the steps in a correct order.
+# making sure to do the steps in a correct order. Assumed to be run from the repository base directory.
 #
 # Note: The extensions for each of the six load configurations are stored in separate files. 
 # When converted to numpy, each snapshot is stored in a separate file, but the numbering is 
