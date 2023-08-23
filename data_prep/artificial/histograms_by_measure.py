@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-art_harm = np.load("artificial_harm_datafile.npy")
-art_biharm = np.load("artificial_biharm_datafile.npy")
-fsi_harm = np.load("fsi_harm_datafile.npy")
-fsi_biharm = np.load("fsi_biharm_datafile.npy")
+art_harm = np.load("data/artificial_harm_datafile.npy")
+art_biharm = np.load("data/artificial_biharm_datafile.npy")
+fsi_harm = np.load("data/fsi_harm_datafile.npy")
+fsi_biharm = np.load("data/fsi_biharm_datafile.npy")
 
 
 dat_scheme = ("u_x", "u_y", "D_x u_x", "D_y u_x", "D_x u_y", "D_y u_y")
@@ -24,7 +24,7 @@ sensors = [
 
 for i, data in enumerate(dat_scheme):
 
-    fig, axs = plt.subplots(2, 5, sharex="col", sharey="row", layout="tight")
+    fig, axs = plt.subplots(2, 5, sharex="col", sharey="row", layout="tight", figsize=(12,6))
     axs0 = axs[0,:]
     axs1 = axs[1,:]
     color = "black"
@@ -55,6 +55,7 @@ for i, data in enumerate(dat_scheme):
     axs0[3].set_title("Lower flag midpoint")
     axs0[4].set_title("Upper flag midpoint")
 
+    fig.savefig(f"figures/dataset_hist_{i+1}.pdf")
     fig.suptitle(data)
 
 

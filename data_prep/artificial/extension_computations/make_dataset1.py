@@ -80,7 +80,7 @@ if __name__ == "__main__":
     solver_biharm = df.PETScLUSolver(A_biharm)
 
 
-    with df.XDMFFile(working_dir+"/displacements.xdmf") as infile:
+    with df.XDMFFile(working_dir+"/displacements1.xdmf") as infile:
 
         p = Path(working_dir+"/harmonic1.xdmf")
         if p.exists(): p.unlink()

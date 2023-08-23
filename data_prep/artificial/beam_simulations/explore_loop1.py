@@ -18,13 +18,13 @@ if __name__ == "__main__":
     with df.HDF5File(solid_mesh.mpi_comm(), working_dir+"/solid.h5", 'r') as h5:
         h5.read(solid_boundaries, 'boundaries')
 
-    p = Path(working_dir+"/displacements.xdmf")
+    p = Path(working_dir+"/displacements1.xdmf")
     if p.exists():
         p.unlink()
-    p = Path(working_dir+"/displacements.h5")
+    p = Path(working_dir+"/displacements1.h5")
     if p.exists():
         p.unlink()
-    displacement_file = df.XDMFFile(working_dir+"/displacements.xdmf")
+    displacement_file = df.XDMFFile(working_dir+"/displacements1.xdmf")
 
     # ----6----
     # 4       9
