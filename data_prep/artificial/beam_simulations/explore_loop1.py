@@ -2,7 +2,7 @@ import dolfin as df
 import numpy as np
 from pathlib import Path
 
-from elasticity import solve_neohook_solid, solve_linear_solid
+from data_prep.artificial.elasticity import solve_neohook_solid, solve_linear_solid
 
 
 if __name__ == "__main__":

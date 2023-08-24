@@ -32,7 +32,7 @@ if __name__ == "__main__":
     zero_displacement_tags = fluid_tags - iface_tags
 
     # Represent the solid data on fluid mesh
-    from make_mesh import translate_function
+    from data_prep.artificial.make_mesh import translate_function
 
     V_solid_cg2 = df.VectorFunctionSpace(solid_mesh, "CG", 2)
     uh_solid = df.Function(V_solid_cg2)
