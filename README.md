@@ -1,6 +1,6 @@
 # learnext-learning-problem
 
-Networks and architectures for learnExt problem of mesh extension.
+Code for the learning problem to learn a neural network-corrected harmonic extension for boundary deformation problems.
 
 The ``fem_nets``-portions need to install [from here](https://github.com/MiroK/fem-nets) for them to work.
 
