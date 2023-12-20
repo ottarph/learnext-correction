@@ -60,10 +60,10 @@ def main():
 
     min_mesh_qual_fig_ax = plt.subplots()
 
-    num_runs = 4
-    num_epochs = 10
+    num_runs = 10
+    num_epochs = 500
+    # Estimate that 10 runs of 500 epochs takes 2h46'40''.
     
-    # mesh_qual_mins_runs = np.zeros((num_runs, len(test_dataloader.dataset)))
     mesh_qualities_over_runs = np.zeros((num_runs, len(test_dataloader.dataset), fluid_mesh.num_cells()))
 
     print()
@@ -133,7 +133,7 @@ def main():
     fig_dir = pathlib.Path("parameter_study/figures")
     fig, ax = min_mesh_qual_fig_ax
     ax.legend()
-    fig.savefig(fig_dir / "min_mesh_qual.pdf")
+    fig.savefig(fig_dir / "random_init_min_mq.pdf")
 
     return
 
