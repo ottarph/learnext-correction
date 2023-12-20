@@ -28,3 +28,6 @@ foo/
 results/*
 
 working_space/
+
+parameter_study/data/
+parameter_study/figures/

@@ -39,6 +39,4 @@ def save_extensions_to_xdmf(model: nn.Module, dataloader: DataLoader, function_s
     if was_train_mode:
         model.train()
 
-    print("Conversion completed.")
-
     return
