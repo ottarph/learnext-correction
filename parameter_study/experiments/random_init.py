@@ -129,11 +129,13 @@ def main():
 
     data_dir = pathlib.Path("parameter_study/data")
     np.save(data_dir / "random_init.npy", mesh_qualities_over_runs)
+    # print(str(data_dir / "random_init.npy"))
 
     fig_dir = pathlib.Path("parameter_study/figures")
     fig, ax = min_mesh_qual_fig_ax
     ax.legend()
     fig.savefig(fig_dir / "random_init_min_mq.pdf")
+    # print(str(fig_dir / "random_init_min_mq.pdf"))
 
     return
 

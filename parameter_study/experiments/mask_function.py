@@ -133,12 +133,14 @@ def main():
 
     data_dir = pathlib.Path("parameter_study/data")
     np.save(data_dir / "mask_function.npy", mesh_qualities_over_runs)
+    # print(str(data_dir / "mask_function.npy"))
 
     fig_dir = pathlib.Path("parameter_study/figures")
     fig, axs = min_mesh_qual_fig_ax
     axs[0].legend()
     axs[1].legend()
     fig.savefig(fig_dir / "mask_function_min_mq.pdf")
+    # print(str(fig_dir / "mask_function_min_mq.pdf"))
 
     return
 

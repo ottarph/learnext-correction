@@ -75,9 +75,9 @@ def main():
         128
     ]
 
-    num_runs_per_depth = 3
-    num_epochs = 10
-    # Estimate that 6 depths with 5 runs of 100 epochs takes 3h16'30''.
+    num_runs_per_depth = 5
+    num_epochs = 100
+    # Estimate that 6 depths with 5 runs of 100 epochs takes 3h15'20''.
     
     min_mesh_qual_fig_ax = plt.subplots(len(widths_array) // 2 + len(widths_array) % 2, 2, figsize=(12,16))
     mesh_qualities_over_runs = np.zeros((len(widths_array), num_runs_per_depth, len(test_dataloader.dataset), fluid_mesh.num_cells()))
@@ -153,6 +153,7 @@ def main():
 
     data_dir = pathlib.Path("parameter_study/data")
     np.save(data_dir / "depth.npy", mesh_qualities_over_runs)
+    # print((str(data_dir / "depth.npy")))
 
     fig_dir = pathlib.Path("parameter_study/figures")
     fig, axs = min_mesh_qual_fig_ax
@@ -161,6 +162,7 @@ def main():
         ax.legend()
         ax.set_title(f"Depth {depths_num+1}")
     fig.savefig(fig_dir / "depth_min_mq.pdf")
+    # print(str(fig_dir / "depth_min_mq.pdf"))
 
     return
 
