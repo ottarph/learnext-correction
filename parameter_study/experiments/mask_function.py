@@ -55,90 +55,85 @@ def main():
     from networks.general import Normalizer
     from conf import poisson_mask_f
     from networks.masknet import poisson_mask_custom
+    mask_df = poisson_mask_custom(V_scal, "1", normalize = True)
 
-    mask_funcs = [poisson_mask_custom(V_scal, poisson_mask_f, normalize = True),
-                  poisson_mask_custom(V_scal, "1", normalize = True)]
-    
+    mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
+    mask = TensorModule(mask_tensor)
 
-    num_runs_per_mask = 10
-    num_epochs = 200
-    # Estimate that 2 masks with 10 runs of 200 epochs takes 2h13'20''.
+    num_runs = 10
+    num_epochs = 500
+    # Estimate that 10 runs of 500 epochs with 2s/epoch takes 2h46m40s.
     
-    min_mesh_qual_fig_ax = plt.subplots(1, 2, figsize=(12,6))
-    mesh_qualities_over_runs = np.zeros((len(mask_funcs), num_runs_per_mask, len(test_dataloader.dataset), fluid_mesh.num_cells()))
+    min_mesh_qual_fig_ax = plt.subplots(figsize=(12,6))
+    mesh_qualities_over_runs = np.zeros((num_runs, len(test_dataloader.dataset), fluid_mesh.num_cells()))
 
     print()
-    for mask_num, mask_df in enumerate(mask_funcs):
-        print(f"Mask # {mask_num+1}")
-        for run in range(num_runs_per_mask):
-                
-            mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
-            mask = TensorModule(mask_tensor)
+
+    for run in range(num_runs):
+
+        torch.manual_seed(run) # Specify seed so that experiment can be reproduced without starting from first run.
+
+        indices = torch.LongTensor(range(2))
+        base = TrimModule(indices, dim=-1)
+        # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
+
+        widths = [8] + [128] * 6 + [2]
+        mlp = MLP(widths, activation=nn.ReLU())
+        # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
+
+        dof_coordinates = torch.tensor(V_scal.tabulate_dof_coordinates(), dtype=torch.get_default_dtype())
+        prepend = PrependModule(dof_coordinates)
+        # prepend inserts (x, y) to beginning of (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
+        # to make correct input of MLP.
+
+        x_mean = torch.tensor([ 8.4319e-01,  2.0462e-01, -1.5600e-03,  4.7358e-04, -5.4384e-03,
+                9.0626e-04,  1.3179e-03,  7.8762e-04])
+        x_std = torch.tensor([0.6965, 0.1011, 0.0035, 0.0134, 0.0425, 0.0468, 0.1392, 0.1484])
+        normalizer = Normalizer(x_mean, x_std)
+        # normalizer changes transforms input to have mean zero and variance one in all dimensions.
+
+        network = nn.Sequential(prepend, normalizer, mlp)
 
 
-            indices = torch.LongTensor(range(2))
-            base = TrimModule(indices, dim=-1)
-            # base returns (u_x, u_y) from (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
-
-            widths = [8] + [128] * 6 + [2]
-            mlp = MLP(widths, activation=nn.ReLU())
-            # MLP takes input (x, y, u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
-
-            dof_coordinates = torch.tensor(V_scal.tabulate_dof_coordinates(), dtype=torch.get_default_dtype())
-            prepend = PrependModule(dof_coordinates)
-            # prepend inserts (x, y) to beginning of (u_x, u_y, d_x u_x, d_y u_x, d_x u_y, d_y u_y)
-            # to make correct input of MLP.
-
-            x_mean = torch.tensor([ 8.4319e-01,  2.0462e-01, -1.5600e-03,  4.7358e-04, -5.4384e-03,
-                    9.0626e-04,  1.3179e-03,  7.8762e-04])
-            x_std = torch.tensor([0.6965, 0.1011, 0.0035, 0.0134, 0.0425, 0.0468, 0.1392, 0.1484])
-            normalizer = Normalizer(x_mean, x_std)
-            # normalizer changes transforms input to have mean zero and variance one in all dimensions.
-
-            network = nn.Sequential(prepend, normalizer, mlp)
-
-
-            mask_net = MaskNet(network, base, mask)
-            mask_net.to(device)
-            
-
-            cost_function = nn.L1Loss()
-            optimizer = torch.optim.AdamW(mlp.parameters(), weight_decay=1e-2)
-
-            val_cost_function = nn.L1Loss()
-
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10)
-
-            context = Context(mask_net, cost_function, optimizer, scheduler, val_cost_function)
-
-            print(f"Run #{run+1}")
-            train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader, callback=None)
-
-
-            mask_net.eval()
-            mask_net.to("cpu")
-
-            from parameter_study.mesh_quality_eval import compute_mesh_qualities
-            mesh_qualities = compute_mesh_qualities(fluid_mesh, test_dataloader, mask_net, 
-                                            quality_measure="scaled_jacobian", show_progress_bar=True)
-            mesh_qualities_over_runs[mask_num, run, :, :] = mesh_qualities
-            mesh_qual_mins = mesh_qualities.min(axis=1)
-
-            fig, axs = min_mesh_qual_fig_ax
-            ax = axs[mask_num]
-            ax.plot(range(mesh_qual_mins.shape[0]), mesh_qual_mins, label=f"Run #{run+1}")
-
-            print()
+        mask_net = MaskNet(network, base, mask)
+        mask_net.to(device)
         
+
+        cost_function = nn.L1Loss()
+        optimizer = torch.optim.AdamW(mlp.parameters(), weight_decay=1e-2)
+
+        val_cost_function = nn.L1Loss()
+
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=10)
+
+        context = Context(mask_net, cost_function, optimizer, scheduler, val_cost_function)
+
+        print(f"Run #{run+1}")
+        train_with_dataloader(context, dataloader, num_epochs, device, val_dataloader=val_dataloader, callback=None)
+
+
+        mask_net.eval()
+        mask_net.to("cpu")
+
+        from parameter_study.mesh_quality_eval import compute_mesh_qualities
+        mesh_qualities = compute_mesh_qualities(fluid_mesh, test_dataloader, mask_net, 
+                                        quality_measure="scaled_jacobian", show_progress_bar=True)
+        mesh_qualities_over_runs[run, :, :] = mesh_qualities
+        mesh_qual_mins = mesh_qualities.min(axis=1)
+
+        fig, ax = min_mesh_qual_fig_ax
+        ax.plot(range(mesh_qual_mins.shape[0]), mesh_qual_mins, label=f"Run #{run+1}")
+
+        print()
+    
 
     data_dir = pathlib.Path("parameter_study/data")
     np.save(data_dir / "mask_function.npy", mesh_qualities_over_runs)
     # print(str(data_dir / "mask_function.npy"))
 
     fig_dir = pathlib.Path("parameter_study/figures")
-    fig, axs = min_mesh_qual_fig_ax
-    axs[0].legend()
-    axs[1].legend()
+    fig, ax = min_mesh_qual_fig_ax
+    ax.legend()
     fig.savefig(fig_dir / "mask_function_min_mq.pdf")
     # print(str(fig_dir / "mask_function_min_mq.pdf"))
 

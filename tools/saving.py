@@ -8,7 +8,8 @@ import pathlib
 
 
 def save_extensions_to_xdmf(model: nn.Module, dataloader: DataLoader, function_space: df.FunctionSpace, 
-                            save_name, save_dir: str = "fenics_output", start_checkpoint: int = 0) -> None:
+                            save_name, save_dir: str = "fenics_output", start_checkpoint: int = 0,
+                            save_label: str = "uh") -> None:
     
     if pathlib.Path(f"{save_dir}/{save_name}.xdmf").is_file():
         pathlib.Path(f"{save_dir}/{save_name}.xdmf").unlink()
@@ -17,8 +18,6 @@ def save_extensions_to_xdmf(model: nn.Module, dataloader: DataLoader, function_s
 
     was_train_mode = model.training
     model.eval()
-
-    save_label = "predicted_extension"
 
     u_pred = df.Function(function_space)
     new_coeffs = np.zeros_like(u_pred.vector().get_local())

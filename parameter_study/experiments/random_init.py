@@ -62,12 +62,14 @@ def main():
 
     num_runs = 10
     num_epochs = 500
-    # Estimate that 10 runs of 500 epochs takes 2h46'40''.
+    # Estimate that 10 runs of 500 epochs takes 2h46m40s.
     
     mesh_qualities_over_runs = np.zeros((num_runs, len(test_dataloader.dataset), fluid_mesh.num_cells()))
 
     print()
     for run in range(num_runs):
+
+        torch.manual_seed(run) # Specify seed so that experiment can be reproduced without starting from first run.
             
         mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
         mask = TensorModule(mask_tensor)

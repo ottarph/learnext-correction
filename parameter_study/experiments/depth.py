@@ -59,39 +59,27 @@ def main():
     mask_df = poisson_mask_custom(V_scal, poisson_mask_f, normalize = True)
 
     widths_array = [
-        [8] + [7633]*1 + [2],
-        [8] + [284]*2 + [2],
-        [8] + [202]*3 + [2],
-        [8] + [165]*4 + [2],
-        [8] + [143]*5 + [2],
-        [8] + [128]*6 + [2]
-    ]
-    batch_sizes = [
-        14,
-        128,
-        128,
-        128,
-        128,
-        128
+        [8] + [284]*2 + [2],    # num. parameters = 84066
+        [8] + [202]*3 + [2],    # num. parameters = 84236
+        [8] + [165]*4 + [2],    # num. parameters = 83987
+        [8] + [143]*5 + [2],    # num. parameters = 83943
+        # [8] + [128]*6 + [2]     # num. parameters = 83970
     ]
 
-    num_runs_per_depth = 5
-    num_epochs = 100
-    # Estimate that 6 depths with 5 runs of 100 epochs takes 3h15'20''.
+    num_runs_per_depth = 10
+    num_epochs = 500
+    # Estimate that 4 depths with 10 runs of 500 epochs with 2s/epoch takes 11h06m40s.
     
     min_mesh_qual_fig_ax = plt.subplots(len(widths_array) // 2 + len(widths_array) % 2, 2, figsize=(12,16))
     mesh_qualities_over_runs = np.zeros((len(widths_array), num_runs_per_depth, len(test_dataloader.dataset), fluid_mesh.num_cells()))
 
     print()
     for depths_num, widths in enumerate(widths_array):
-        print(f"depth {depths_num+1}, widths = [8] + [{widths[1]}]*{len(widths)-2} + [2]")
-
-        dataloader = DataLoader(dataset, batch_size=batch_sizes[depths_num], shuffle=shuffle)
-        val_dataloader = DataLoader(val_dataset, batch_size=batch_sizes[depths_num], shuffle=shuffle)
-        test_dataloader = DataLoader(test_dataset, batch_size=batch_sizes[depths_num], shuffle=False)
+        print(f"{len(widths)-2} hidden layers, widths = [8] + [{widths[1]}]*{len(widths)-2} + [2]")
 
         for run in range(num_runs_per_depth):
-                
+
+            torch.manual_seed(run) # Specify seed so that experiment can be reproduced without starting from first run.
 
             mask_tensor = torch.tensor(mask_df.vector().get_local(), dtype=torch.get_default_dtype())
             mask = TensorModule(mask_tensor)

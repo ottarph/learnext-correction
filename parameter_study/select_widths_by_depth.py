@@ -5,12 +5,12 @@ import torch.nn as nn
 from networks.general import MLP
 
 widths_array = [
-    [8] + [7633]*1 + [2],
-    [8] + [284]*2 + [2],
-    [8] + [202]*3 + [2],
-    [8] + [165]*4 + [2],
-    [8] + [143]*5 + [2],
-    [8] + [128]*6 + [2]
+    [8] + [7633]*1 + [2],   # num. parameters = 83965
+    [8] + [284]*2 + [2],    # num. parameters = 84066
+    [8] + [202]*3 + [2],    # num. parameters = 84236
+    [8] + [165]*4 + [2],    # num. parameters = 83987
+    [8] + [143]*5 + [2],    # num. parameters = 83943
+    [8] + [128]*6 + [2]     # num. parameters = 83970
 ]
 
 mlps = [MLP(widths, activation=nn.ReLU()) for widths in widths_array]
