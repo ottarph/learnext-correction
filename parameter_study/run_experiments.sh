@@ -10,4 +10,4 @@ echo "$(date +%Y.%m.%d-%H:%M): Running depth.py" >> parameter_study/data/log.txt
 PYTHONPATH=. python3 parameter_study/experiments/depth.py
 
 echo "$(date +%Y.%m.%d-%H:%M): Finished" >> parameter_study/data/log.txt
-echo "" >> parameter_study/log.txt
+echo "" >> parameter_study/data/log.txt
