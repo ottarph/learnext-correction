@@ -33,7 +33,7 @@ if __name__ == "__main__":
     for k, theta in enumerate(np.linspace(0, 2*np.pi, 101)):
         print(theta)
         displacement_bcs = {4: df.Constant((0, 0))}
-        volume_load = df.Expression(('0', '-A*x[0]'), degree=1, A=1E-3*10*-7.2*0)
+        volume_load = df.Expression(('0', '-A*x[0]'), degree=1, A=0)
 
         six_load = df.Expression(('0', 'abs(x[0] - 0.4) < 0.02? C: 0'), degree=1, C=-1.7E3*np.cos(theta))
         nine_load = df.Constant((0, 1.925E3*np.cos(theta)))
