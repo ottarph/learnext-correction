@@ -1,8 +1,10 @@
-# learnext-learning-problem
+# LearnExt: NN-corrected-training
 
-Code for the learning problem to learn a neural network-corrected harmonic extension for boundary deformation problems.
+Code repository for the training problem of the NN-corrected harmonic extension in manuscript
+> J. Haubner, O. Hellan, M. Zeinhofer, M. Kuchta: Learning Mesh Motion Techniques with Application to Fluid-Structure Interaction, arXiv preprint arXiv:2206.02217
 
-The ``fem_nets``-portions need to install [from here](https://github.com/MiroK/fem-nets) for them to work.
+Any code that needs ``fem_nets`` must install [from here](https://github.com/MiroK/fem-nets).
+
 
 Otherwise, requirements are generally
 - `PyTorch`
